@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mis Cartas Yu-Gi-Oh!</title>
+<meta name="description" content="Stock, compras, ventas y precios de tus cartas de Yu-Gi-Oh!">
+<meta name="theme-color" content="#5733c2">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mis Cartas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout: una columna tipo app de celular, barra de pestañas abajo, hojas que suben desde abajo */
+:root{
+  --bg:#eceef3; --surface:#ffffff; --ink:#1a1c29; --muted:#5f6478; --line:#d8dbe4;
+  --accent:#5733c2; --accent-ink:#ffffff; --gold:#9a6a08; --gold-soft:#f6ecd4;
+  --up:#1d7f47; --down:#c0352b; --up-soft:#e2f3e8; --down-soft:#fbe6e3;
+  --display:"Barlow Condensed", "Arial Narrow", sans-serif;
+  --body:"Barlow", "Segoe UI", system-ui, sans-serif;
+  --radius:14px; --shadow:0 1px 2px rgba(20,22,40,.06), 0 4px 14px rgba(20,22,40,.06);
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11121b; --surface:#1b1d2a; --ink:#ecedf4; --muted:#9ca1b6; --line:#2c2f42;
+    --accent:#9f86ff; --accent-ink:#14111f; --gold:#e3b64c; --gold-soft:#2e2717;
+    --up:#55c98a; --down:#ff7b6f; --up-soft:#16301f; --down-soft:#3a1c1a;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11121b; --surface:#1b1d2a; --ink:#ecedf4; --muted:#9ca1b6; --line:#2c2f42;
+  --accent:#9f86ff; --accent-ink:#14111f; --gold:#e3b64c; --gold-soft:#2e2717;
+  --up:#55c98a; --down:#ff7b6f; --up-soft:#16301f; --down-soft:#3a1c1a;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 14px rgba(0,0,0,.25);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;-webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+.app{max-width:760px;margin:0 auto;min-height:100%;padding:0 16px 150px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:18px 0 10px}
+.marca{display:flex;align-items:center;gap:10px}
+.logo{width:34px;height:34px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:20px}
+h1{font-family:var(--display);font-weight:700;font-size:28px;letter-spacing:.3px;margin:0;line-height:1}
+h2{font-family:var(--display);font-weight:700;font-size:22px;margin:22px 0 10px;text-wrap:balance}
+.estado{font-size:13px;color:var(--muted);text-align:right}
+.aviso{background:var(--gold-soft);color:var(--ink);border:1px solid var(--gold);border-radius:10px;padding:10px 12px;font-size:14px;margin:6px 0 10px}
+
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:6px 0 14px}
+.tile{background:var(--surface);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow);min-width:0}
+.tile small{display:block;color:var(--muted);font-size:12.5px;line-height:1.2}
+.tile b{display:block;font-family:var(--display);font-size:24px;font-weight:700;margin-top:4px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.tile.gold b{color:var(--gold)}
+@media (max-width:560px){.tiles{grid-template-columns:repeat(2,1fr)}}
+
+.buscador{position:sticky;top:0;z-index:5;background:var(--bg);padding:6px 0 8px}
+.buscador input{width:100%;padding:13px 14px 13px 42px;border-radius:12px;border:1px solid var(--line);background:var(--surface) no-repeat 14px center;font-size:17px}
+.buscador .lupa{position:absolute;left:14px;top:50%;transform:translateY(-40%);color:var(--muted);pointer-events:none}
+.buscador{position:sticky}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;scrollbar-width:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:14px;font-weight:500;white-space:nowrap}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+.lista{display:flex;flex-direction:column;gap:8px}
+.fila{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);border:1px solid transparent;border-radius:var(--radius);padding:12px 14px;box-shadow:var(--shadow)}
+.fila:hover{border-color:var(--line)}
+.f-nombre{font-weight:600;font-size:16.5px;overflow-wrap:anywhere}
+.f-sub{color:var(--muted);font-size:13.5px;margin-top:2px;overflow-wrap:anywhere}
+.f-precio{text-align:right;font-size:14.5px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.f-precio .sin{color:var(--muted);font-size:13px}
+.f-stock{min-width:52px;text-align:center;border-radius:10px;padding:4px 6px;background:var(--gold-soft)}
+.f-stock b{display:block;font-family:var(--display);font-size:22px;line-height:1;color:var(--gold)}
+.f-stock small{font-size:11px;color:var(--muted)}
+.f-stock.cero{background:transparent;border:1px dashed var(--line)}
+.f-stock.cero b{color:var(--muted)}
+.var{display:inline-block;font-size:12.5px;font-weight:600;border-radius:6px;padding:1px 6px;margin-top:3px}
+.var.up{color:var(--up);background:var(--up-soft)}
+.var.down{color:var(--down);background:var(--down-soft)}
+.var.igual{color:var(--muted)}
+.rar{display:inline-block;width:8px;height:8px;border-radius:2px;transform:rotate(45deg);margin-right:6px;vertical-align:1px;background:var(--muted)}
+
+.vacio{background:var(--surface);border-radius:var(--radius);padding:28px 20px;text-align:center;color:var(--muted);box-shadow:var(--shadow)}
+.vacio b{display:block;color:var(--ink);font-family:var(--display);font-size:22px;margin-bottom:6px}
+
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;display:flex;justify-content:center;background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+.tabs-in{display:grid;grid-template-columns:repeat(4,1fr);width:100%;max-width:760px}
+.tab{background:none;border:0;padding:8px 4px;border-radius:10px;font-size:13.5px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+.tab svg{width:22px;height:22px}
+.tab[aria-current="page"]{color:var(--accent)}
+.fab{position:fixed;right:max(16px, calc(50% - 364px));bottom:calc(76px + env(safe-area-inset-bottom));z-index:21;border:0;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-weight:700;font-size:17px;padding:14px 20px;box-shadow:0 6px 18px rgba(60,30,150,.35)}
+
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:11px;padding:11px 14px;font-weight:600;font-size:15.5px;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none;color:var(--ink)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.venta{background:var(--up);border-color:var(--up);color:#fff}
+.btn.peligro{color:var(--down);border-color:var(--down)}
+.btn.chico{padding:7px 11px;font-size:14px}
+.fila-btns{display:flex;gap:8px;flex-wrap:wrap}
+.fila-btns .btn{flex:1 1 140px}
+
+.capa{position:fixed;inset:0;z-index:50;background:rgba(10,10,20,.5);display:flex;align-items:flex-end;justify-content:center}
+.capa[hidden]{display:none}
+.hoja{background:var(--bg);width:100%;max-width:640px;max-height:92%;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(22px + env(safe-area-inset-bottom))}
+@media (min-width:700px){.capa{align-items:center}.hoja{border-radius:20px;max-height:88%}}
+.hoja-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px}
+.hoja-top h2{margin:0}
+.cerrar{border:0;background:var(--surface);border-radius:999px;width:36px;height:36px;font-size:20px;line-height:1;flex:none}
+form{display:flex;flex-direction:column;gap:12px}
+.campo{display:flex;flex-direction:column;gap:5px;min-width:0}
+.campo label{font-size:14px;font-weight:600;color:var(--muted)}
+.campo input,.campo select,.campo textarea{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:16.5px}
+.dos{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{text-align:center;padding:9px;border-radius:9px;font-weight:600;color:var(--muted);cursor:pointer}
+.seg input:checked + label{background:var(--accent);color:var(--accent-ink)}
+.seg input:focus-visible + label{outline:2px solid var(--accent)}
+.ayuda{font-size:13.5px;color:var(--muted);margin:0}
+.error{color:var(--down);font-weight:600;font-size:14.5px;margin:0}
+
+.panel{background:var(--surface);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+.datos{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.dato{background:var(--surface);border-radius:12px;padding:10px;box-shadow:var(--shadow)}
+.dato small{display:block;color:var(--muted);font-size:12.5px}
+.dato b{font-family:var(--display);font-size:21px;font-variant-numeric:tabular-nums}
+.grafico svg{display:block;width:100%;height:auto}
+.historial{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column}
+.historial li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 2px;border-top:1px solid var(--line);font-size:15px}
+.x{border:0;background:none;color:var(--muted);font-size:18px;padding:2px 8px}
+
+.mov{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;background:var(--surface);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow)}
+.tipo{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;border-radius:6px;padding:3px 7px}
+.tipo.venta{background:var(--up-soft);color:var(--up)}
+.tipo.compra{background:var(--gold-soft);color:var(--gold)}
+.fecha-grupo{font-size:13px;font-weight:700;color:var(--muted);margin:14px 2px 4px;text-transform:uppercase;letter-spacing:.5px}
+
+.barras{display:flex;flex-direction:column;gap:10px}
+.barra-fila{display:grid;grid-template-columns:62px 1fr;gap:10px;align-items:center;font-size:14px}
+.barra-par{display:flex;flex-direction:column;gap:3px}
+.barra{height:12px;border-radius:4px;min-width:2px}
+.barra.v{background:var(--up)} .barra.c{background:var(--gold)}
+.leyenda{display:flex;gap:14px;font-size:13px;color:var(--muted);margin-bottom:8px}
+.leyenda i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+.toast{position:fixed;left:50%;bottom:calc(140px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:60;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+.toast[hidden]{display:none}
+
+/* importar desde Excel */
+.top-der{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.top-btns{display:flex;justify-content:flex-end;gap:6px}
+.top-btns .btn{white-space:nowrap;padding:7px 10px}
+.top{flex-wrap:wrap}
+.top h1{white-space:nowrap}
+.top-der{margin-left:auto}
+.oculto{position:absolute;width:1px;height:1px;opacity:0;overflow:hidden;pointer-events:none}
+.archivo{width:100%;margin:4px 0 10px}
+.cols{display:flex;flex-direction:column;gap:8px}
+.col-imp{display:grid;grid-template-columns:1fr minmax(160px,46%);gap:10px;align-items:center;background:var(--surface);border-radius:12px;padding:10px 12px;box-shadow:var(--shadow)}
+.col-imp b{display:block;overflow-wrap:anywhere;font-size:15.5px}
+.col-imp small{display:block;color:var(--muted);font-size:13px;overflow-wrap:anywhere;margin-top:2px}
+.col-imp select,.sel-hoja{width:100%;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:15.5px}
+.col-imp.usada select{border-color:var(--accent);font-weight:600}
+@media (max-width:480px){.col-imp{grid-template-columns:1fr}}
+.check{display:flex;gap:10px;align-items:flex-start;font-size:15px;margin:10px 0 0;cursor:pointer}
+.check input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-color:var(--accent)}
+.imp-cab{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:-4px 0 6px}
+.imp-cab .f-sub{margin:0}
+.resumen{font-size:16px;margin:0 0 6px}
+.f-mas{font-family:var(--display);font-size:20px;font-weight:700;color:var(--gold);white-space:nowrap}
+.f-mas.cero{color:var(--muted)}
+.fila.previa{cursor:default}
+.progreso{height:14px;border-radius:999px;background:var(--surface);border:1px solid var(--line);overflow:hidden;margin:18px 0 8px}
+.progreso i{display:block;height:100%;background:var(--accent);transition:width .2s}
+.btn[disabled]{opacity:.5;cursor:default}
+.importar-fin{position:sticky;bottom:calc(-22px - env(safe-area-inset-bottom));background:var(--bg);padding:12px 0 6px;margin-top:12px;display:flex;flex-direction:column;gap:6px}
+@media (prefers-reduced-motion:no-preference){
+  .hoja{animation:sube .18s ease-out}
+  @keyframes sube{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="marca"><span class="logo" aria-hidden="true">◆</span><h1>Mis Cartas</h1></div>
+    <div class="top-der">
+      <div class="top-btns">
+        <button class="btn chico" data-accion="copia" id="btn-copia">Copia</button>
+        <button class="btn chico" data-accion="importar" id="btn-importar">Importar Excel</button>
+      </div>
+      <span id="estado" class="estado">Cargando…</span>
+    </div>
+  </header>
+  <div id="aviso"></div>
+  <main id="vista"></main>
+</div>
+
+<nav class="tabs" aria-label="Secciones">
+  <div class="tabs-in">
+    <button class="tab" data-tab="stock" id="tab-stock"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="12" height="17" rx="2"/><path d="M8 21h10a2 2 0 0 0 2-2V7"/></svg>Stock</button>
+    <button class="tab" data-tab="movs" id="tab-movs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4v16M7 4 3 8M7 4l4 4M17 20V4m0 16-4-4m4 4 4-4"/></svg>Movimientos</button>
+    <button class="tab" data-tab="precios" id="tab-precios"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Precios</button>
+    <button class="tab" data-tab="ganancias" id="tab-ganancias"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Ganancias</button>
+  </div>
+</nav>
+<button class="fab" data-accion="nueva" id="fab">+ Carta</button>
+
+<div id="capa" class="capa" hidden><div id="hoja" class="hoja" role="dialog" aria-modal="true" aria-label="Detalle"></div></div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ---------------------------------------------------------------- utilidades */
+const $ = s => document.querySelector(s);
+const vista = $("#vista"), capa = $("#capa"), hoja = $("#hoja");
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => String(s || "").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+const ars = n => "$ " + Math.round(n).toLocaleString("es-AR");
+const usd = n => "US$ " + n.toLocaleString("es-AR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const plata = (n, m) => m === "usd" ? usd(n) : ars(n);
+const pct = n => (n > 0 ? "▲ " : n < 0 ? "▼ " : "") + Math.abs(n).toLocaleString("es-AR", {maximumFractionDigits: 1}) + "%";
+const hoy = () => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); };
+const fFecha = iso => iso ? iso.split("-").reverse().join("/") : "";
+const diasDesde = iso => Math.round((new Date(hoy()) - new Date(iso)) / 86400000);
+const numero = v => { const n = parseFloat(String(v).replace(/\./g, "").replace(",", ".")); return isFinite(n) ? n : NaN; };
+const numeroDec = v => { const s = String(v).trim(); const n = parseFloat(s.includes(",") ? s.replace(/\./g, "").replace(",", ".") : s); return isFinite(n) ? n : NaN; };
+const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+
+const RAREZAS = ["Common","Rare","Super Rare","Ultra Rare","Secret Rare","Ultimate Rare","Ghost Rare","Starlight Rare","Quarter Century Secret Rare","Collector's Rare","Prismatic Secret Rare","Platinum Secret Rare","Gold Rare","Short Print"];
+const COLOR_RAREZA = {"Common":"#8a8fa3","Rare":"#7d8db8","Super Rare":"#3f86d6","Ultra Rare":"#d4a017","Secret Rare":"#c25bd6","Ultimate Rare":"#a0662c","Ghost Rare":"#9fb6c6","Starlight Rare":"#e85d9b","Quarter Century Secret Rare":"#e0453a","Collector's Rare":"#4fb3a9","Prismatic Secret Rare":"#7a5cf0","Platinum Secret Rare":"#b8bcc8","Gold Rare":"#c99a1c"};
+const IDIOMAS = ["Inglés","Español","Portugués","Francés","Alemán","Italiano","Japonés","Otro"];
+const ESTADOS = ["Near Mint","Lightly Played","Moderately Played","Heavily Played","Damaged"];
+
+const linkTCG = c => "https://www.tcgplayer.com/search/yugioh/product?productLineName=yugioh&q=" + encodeURIComponent(c.nombre);
+const linkML = c => "https://listado.mercadolibre.com.ar/" + encodeURIComponent(norm("yugioh " + c.nombre + (c.set ? " " + c.set : "")).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""));
+
+/* --------------------------------------------------------------------- estado */
+let cartas = new Map();   // id -> {id, nombre, set, rareza, idioma, estado, notas, creada, precios:[{f, v, m}]}
+let movs = [];            // {id, cartaId, tipo, cant, precio, fecha, nota, ts}
+let cargadoC = false, cargadoM = false, confirmado = false;
+let db = null, colCartas = null, colMovs = null, modoPrueba = false;
+const ui = {tab: "stock", q: "", rareza: null, soloStock: true, modal: null, tipoMov: "todos", monedaGraf: "usd"};
+
+/* ---------------------------------------------------------------- guardado */
+let contadorLocal = 0;
+const nuevoId = () => colCartas ? colCartas.doc().id : "l" + Date.now() + (contadorLocal++);
+const sinId = o => { const c = {...o}; delete c.id; return c; };
+
+async function conReintento(fn){
+  try { return await fn(); }
+  catch (e) {
+    if (e && e.code === "unavailable") { await new Promise(r => setTimeout(r, 600 + Math.random()*800)); return await fn(); }
+    throw e;
+  }
+}
+function errorGuardado(e){
+  const msg = e && e.code === "quota_exceeded" ? "Se llenó el espacio de la app. Borrá movimientos viejos para seguir."
+    : "No se pudo guardar. Probá de nuevo.";
+  aviso(msg); throw e;
+}
+/* Los datos viven en este dispositivo (localStorage). modoPrueba = guardado local. */
+const CLAVE = "mis-cartas-v1";
+const datosCopia = () => ({app: "mis-cartas", v: 1, fecha: hoy(), cartas: [...cartas.values()], movs});
+function leerLocal(){
+  const t = localStorage.getItem(CLAVE);
+  const d = t ? JSON.parse(t) : {};
+  cartas = new Map((d.cartas || []).map(c => [c.id, c]));
+  movs = d.movs || [];
+}
+function persistir(){
+  try { localStorage.setItem(CLAVE, JSON.stringify(datosCopia())); }
+  catch (e) { const err = new Error("no-guardo"); err.code = "quota_exceeded"; throw err; }
+}
+function local(cambio){
+  cambio();
+  try { persistir(); }
+  catch (e) { try { leerLocal(); } catch (_) {} render(); errorGuardado(e); }
+  render();
+}
+async function guardarCarta(c){
+  if (modoPrueba) { local(() => cartas.set(c.id, c)); return; }
+  try { await conReintento(() => colCartas.doc(c.id).set(sinId(c))); } catch (e) { errorGuardado(e); }
+}
+async function borrarCartaDB(id){
+  const suyos = movs.filter(m => m.cartaId === id);
+  if (modoPrueba) { local(() => { cartas.delete(id); movs = movs.filter(m => m.cartaId !== id); }); return; }
+  try {
+    for (const m of suyos) await conReintento(() => colMovs.doc(m.id).delete());
+    await conReintento(() => colCartas.doc(id).delete());
+  } catch (e) { errorGuardado(e); }
+}
+async function guardarMov(m){
+  if (modoPrueba) { local(() => movs.push(m)); return; }
+  try { await conReintento(() => colMovs.doc(m.id).set(sinId(m))); } catch (e) { errorGuardado(e); }
+}
+async function borrarMovDB(id){
+  if (modoPrueba) { local(() => { movs = movs.filter(m => m.id !== id); }); return; }
+  try { await conReintento(() => colMovs.doc(id).delete()); } catch (e) { errorGuardado(e); }
+}
+
+/* ---------------------------------------------------------------- cálculos */
+function indiceMovs(){
+  const idx = new Map();
+  for (const m of movs) { if (!idx.has(m.cartaId)) idx.set(m.cartaId, []); idx.get(m.cartaId).push(m); }
+  return idx;
+}
+function preciosDe(c, moneda){
+  return (c.precios || []).filter(p => p.m === moneda).slice().sort((a, b) => a.f < b.f ? -1 : a.f > b.f ? 1 : 0);
+}
+function infoCarta(c, idx){
+  const ms = (idx || indiceMovs()).get(c.id) || [];
+  let compU = 0, comp = 0, vendU = 0, vend = 0;
+  for (const m of ms) {
+    if (m.tipo === "compra") { compU += m.cant; comp += m.cant * m.precio; }
+    else { vendU += m.cant; vend += m.cant * m.precio; }
+  }
+  const out = {stock: compU - vendU, compU, comp, vendU, vend, costo: compU ? comp / compU : null};
+  for (const mon of ["usd", "ars"]) {
+    const ps = preciosDe(c, mon);
+    const ult = ps[ps.length - 1], ant = ps[ps.length - 2];
+    out[mon] = ult ? ult.v : null;
+    out[mon + "Fecha"] = ult ? ult.f : null;
+    out[mon + "Var"] = ult && ant && ant.v ? (ult.v - ant.v) / ant.v * 100 : null;
+  }
+  out.ultPrecio = [out.usdFecha, out.arsFecha].filter(Boolean).sort().pop() || null;
+  return out;
+}
+function etiquetaCarta(c){
+  return [c.set, c.rareza, c.idioma !== "Inglés" ? c.idioma : null].filter(Boolean).join(" · ") || "Sin edición";
+}
+function chipVar(v){
+  if (v == null) return "";
+  const cl = v > 0.05 ? "up" : v < -0.05 ? "down" : "igual";
+  return `<span class="var ${cl}">${pct(v)}</span>`;
+}
+
+/* ----------------------------------------------------------------- avisos */
+let tToast;
+function toast(t){ const el = $("#toast"); el.textContent = t; el.hidden = false; clearTimeout(tToast); tToast = setTimeout(() => el.hidden = true, 2600); }
+function aviso(t){ $("#aviso").innerHTML = t ? `<div class="aviso">${esc(t)}</div>` : ""; }
+function estado(t){ $("#estado").textContent = t; }
+
+/* -------------------------------------------------------------------- vistas */
+function render(){
+  if (importando) return;
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-current", b.dataset.tab === ui.tab ? "page" : "false"));
+  if (!cargadoC || !cargadoM) { vista.innerHTML = `<div class="vacio"><b>Cargando tus cartas…</b>Un segundo.</div>`; return; }
+  ({stock: vistaStock, movs: vistaMovs, precios: vistaPrecios, ganancias: vistaGanancias})[ui.tab]();
+  if (ui.modal && ui.modal.tipo === "detalle") abrirDetalle(ui.modal.id, true);
+}
+
+function vistaStock(){
+  const idx = indiceMovs();
+  let unidades = 0, distintas = 0, invertido = 0, valorUsd = 0, valorArs = 0;
+  for (const c of cartas.values()) {
+    const i = infoCarta(c, idx);
+    if (i.stock > 0) {
+      distintas++; unidades += i.stock;
+      invertido += (i.costo || 0) * i.stock;
+      if (i.usd) valorUsd += i.usd * i.stock;
+      if (i.ars) valorArs += i.ars * i.stock;
+    }
+  }
+  const rarezas = [...new Set([...cartas.values()].map(c => c.rareza).filter(Boolean))].sort((a, b) => RAREZAS.indexOf(a) - RAREZAS.indexOf(b));
+  vista.innerHTML = `
+    <section class="tiles" aria-label="Resumen">
+      <div class="tile"><small>Cartas en stock</small><b>${distintas}</b></div>
+      <div class="tile"><small>Unidades</small><b>${unidades}</b></div>
+      <div class="tile"><small>Invertido en stock</small><b>${ars(invertido)}</b></div>
+      <div class="tile gold"><small>Valor de lo que tiene precio anotado</small><b>${valorArs ? ars(valorArs) : valorUsd ? usd(valorUsd) : "—"}</b></div>
+    </section>
+    <div class="buscador">
+      <label for="q" class="lupa" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></label>
+      <input id="q" type="search" placeholder="Buscar por nombre, set o nota" value="${esc(ui.q)}" autocomplete="off" aria-label="Buscar carta">
+    </div>
+    <div class="chips" role="group" aria-label="Filtros">
+      <button class="chip" data-accion="soloStock" aria-pressed="${ui.soloStock}">Solo con stock</button>
+      ${rarezas.map(r => `<button class="chip" data-accion="rareza" data-r="${esc(r)}" aria-pressed="${ui.rareza === r}"><span class="rar" style="background:${COLOR_RAREZA[r] || "var(--muted)"}"></span>${esc(r)}</button>`).join("")}
+    </div>
+    <div id="lista" class="lista"></div>`;
+  pintarLista();
+}
+
+function pintarLista(){
+  const lista = $("#lista"); if (!lista) return;
+  if (!cartas.size) {
+    lista.innerHTML = `<div class="vacio"><b>Todavía no cargaste cartas</b>Tocá <strong>+ Carta</strong> abajo a la derecha para cargar la primera, o traelas todas juntas desde una planilla.<div style="margin-top:14px"><button class="btn pri" data-accion="importar">Importar desde Excel</button></div></div>`;
+    return;
+  }
+  const idx = indiceMovs(), q = norm(ui.q).trim();
+  const filas = [...cartas.values()].map(c => ({c, i: infoCarta(c, idx)}))
+    .filter(({c, i}) => (!ui.soloStock || i.stock > 0) && (!ui.rareza || c.rareza === ui.rareza)
+      && (!q || norm(c.nombre + " " + (c.set || "") + " " + (c.notas || "") + " " + (c.rareza || "")).includes(q)))
+    .sort((a, b) => a.c.nombre.localeCompare(b.c.nombre, "es"));
+  if (!filas.length) {
+    lista.innerHTML = `<div class="vacio"><b>No hay cartas con ese filtro</b>${ui.soloStock ? "Probá sacando “Solo con stock”." : "Probá con otra palabra."}</div>`;
+    return;
+  }
+  lista.innerHTML = filas.map(({c, i}) => {
+    const precio = i.ars != null ? `${ars(i.ars)}<br>${chipVar(i.arsVar)}` : i.usd != null ? `${usd(i.usd)}<br>${chipVar(i.usdVar)}` : `<span class="sin">sin precio</span>`;
+    return `<button class="fila" data-accion="detalle" data-id="${esc(c.id)}">
+      <div><div class="f-nombre">${c.rareza ? `<span class="rar" style="background:${COLOR_RAREZA[c.rareza] || "var(--muted)"}"></span>` : ""}${esc(c.nombre)}</div>
+      <div class="f-sub">${esc(etiquetaCarta(c))}${c.notas ? " · " + esc(c.notas) : ""}</div></div>
+      <div class="f-precio">${precio}</div>
+      <div class="f-stock ${i.stock > 0 ? "" : "cero"}"><b class="num">${i.stock}</b><small>stock</small></div>
+    </button>`;
+  }).join("");
+}
+
+function vistaMovs(){
+  const lista = movs.slice().filter(m => ui.tipoMov === "todos" || m.tipo === ui.tipoMov)
+    .sort((a, b) => (b.fecha + (b.ts || 0)).localeCompare(a.fecha + (a.ts || 0)) || (b.ts || 0) - (a.ts || 0));
+  let html = `<h2>Movimientos</h2>
+    <div class="chips" role="group" aria-label="Tipo">
+      ${[["todos","Todos"],["venta","Ventas"],["compra","Compras"]].map(([k, t]) => `<button class="chip" data-accion="tipoMov" data-t="${k}" aria-pressed="${ui.tipoMov === k}">${t}</button>`).join("")}
+    </div>`;
+  if (!lista.length) {
+    html += `<div class="vacio"><b>Sin movimientos</b>Abrí una carta desde Stock y tocá Vender o Comprar.</div>`;
+  } else {
+    let fechaActual = "";
+    html += `<div class="lista">`;
+    for (const m of lista.slice(0, 300)) {
+      if (m.fecha !== fechaActual) { fechaActual = m.fecha; html += `<div class="fecha-grupo">${fechaLarga(m.fecha)}</div>`; }
+      const c = cartas.get(m.cartaId);
+      html += `<div class="mov">
+        <span class="tipo ${m.tipo}">${m.tipo}</span>
+        <div><div class="f-nombre">${esc(c ? c.nombre : "Carta borrada")}</div>
+          <div class="f-sub num">${m.cant} × ${ars(m.precio)}${m.nota ? " · " + esc(m.nota) : ""}</div></div>
+        <div style="display:flex;align-items:center;gap:4px"><b class="num">${ars(m.cant * m.precio)}</b>
+          <button class="x" data-accion="borrarMov" data-id="${esc(m.id)}" aria-label="Borrar movimiento">×</button></div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+  vista.innerHTML = html;
+}
+function fechaLarga(iso){
+  const d = diasDesde(iso);
+  if (d === 0) return "Hoy";
+  if (d === 1) return "Ayer";
+  const [y, m, dd] = iso.split("-");
+  return `${+dd} ${MESES[+m - 1]} ${y}`;
+}
+
+function vistaPrecios(){
+  const idx = indiceMovs();
+  const todas = [...cartas.values()].map(c => ({c, i: infoCarta(c, idx)}));
+  const conStock = todas.filter(x => x.i.stock > 0)
+    .sort((a, b) => (a.i.ultPrecio || "0000").localeCompare(b.i.ultPrecio || "0000"));
+  const cambios = todas.map(x => ({...x, v: x.i.arsVar ?? x.i.usdVar, mon: x.i.arsVar != null ? "ars" : "usd"})).filter(x => x.v != null && Math.abs(x.v) > 0.05);
+  const suben = cambios.filter(x => x.v > 0).sort((a, b) => b.v - a.v).slice(0, 8);
+  const bajan = cambios.filter(x => x.v < 0).sort((a, b) => a.v - b.v).slice(0, 8);
+  const filaCambio = x => `<button class="fila" data-accion="detalle" data-id="${esc(x.c.id)}">
+      <div><div class="f-nombre">${esc(x.c.nombre)}</div><div class="f-sub">${esc(etiquetaCarta(x.c))}</div></div>
+      <div class="f-precio">${plata(x.i[x.mon], x.mon)}<br>${chipVar(x.v)}</div><span></span></button>`;
+
+  let html = `<h2>Subas y bajas</h2>
+    <p class="ayuda">Compara el último precio que anotaste con el anterior de cada carta.</p>`;
+  if (!cambios.length) {
+    html += `<div class="vacio"><b>Todavía no hay comparaciones</b>Anotá el precio de una carta dos veces, en días distintos, y acá vas a ver si subió o bajó.</div>`;
+  } else {
+    html += `<div class="lista">${suben.map(filaCambio).join("")}${bajan.map(filaCambio).join("")}</div>`;
+  }
+  html += `<h2>Para revisar el precio</h2>
+    <p class="ayuda">Tus cartas en stock, empezando por las que hace más que no les mirás el precio.</p>`;
+  if (!conStock.length) {
+    html += `<div class="vacio"><b>No hay cartas en stock</b>Cargá una con <strong>+ Carta</strong>.</div>`;
+  } else {
+    html += `<div class="lista">` + conStock.slice(0, 60).map(({c, i}) => {
+      const hace = i.ultPrecio ? (diasDesde(i.ultPrecio) === 0 ? "hoy" : `hace ${diasDesde(i.ultPrecio)} días`) : "nunca";
+      return `<div class="panel" style="display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
+          <div><div class="f-nombre">${esc(c.nombre)}</div><div class="f-sub">${esc(etiquetaCarta(c))} · precio anotado ${hace}</div></div>
+          <div class="f-precio">${i.ars != null ? ars(i.ars) : ""}${i.ars != null && i.usd != null ? "<br>" : ""}${i.usd != null ? usd(i.usd) : ""}</div>
+        </div>
+        <div class="fila-btns">
+          <a class="btn chico" href="${linkTCG(c)}" target="_blank" rel="noopener">TCGplayer ↗</a>
+          <a class="btn chico" href="${linkML(c)}" target="_blank" rel="noopener">MercadoLibre ↗</a>
+          <button class="btn chico pri" data-accion="precio" data-id="${esc(c.id)}">Anotar precio</button>
+        </div></div>`;
+    }).join("") + `</div>`;
+  }
+  vista.innerHTML = html;
+}
+
+function vistaGanancias(){
+  const idx = indiceMovs();
+  let vendido = 0, costoVendido = 0, sinCosto = 0;
+  const porCarta = [];
+  for (const c of cartas.values()) {
+    const i = infoCarta(c, idx);
+    if (!i.vendU) continue;
+    const costo = (i.costo || 0) * i.vendU;
+    if (i.costo == null) sinCosto++;
+    vendido += i.vend; costoVendido += costo;
+    porCarta.push({c, i, ganancia: i.vend - costo});
+  }
+  const meses = new Map();
+  for (const m of movs) {
+    const k = m.fecha.slice(0, 7);
+    if (!meses.has(k)) meses.set(k, {venta: 0, compra: 0});
+    meses.get(k)[m.tipo] += m.cant * m.precio;
+  }
+  const ultMeses = [...meses.entries()].sort((a, b) => a[0] < b[0] ? 1 : -1).slice(0, 6);
+  const max = Math.max(1, ...ultMeses.flatMap(([, v]) => [v.venta, v.compra]));
+  const ganancia = vendido - costoVendido;
+
+  let html = `<h2>Ganancias</h2>
+    <section class="tiles">
+      <div class="tile"><small>Total vendido</small><b>${ars(vendido)}</b></div>
+      <div class="tile"><small>Lo que te costaron</small><b>${ars(costoVendido)}</b></div>
+      <div class="tile gold" style="grid-column:span 2"><small>Ganancia</small><b style="color:${ganancia >= 0 ? "var(--up)" : "var(--down)"}">${ars(ganancia)}</b></div>
+    </section>
+    <p class="ayuda">La ganancia de cada venta usa el precio promedio al que compraste esa carta.${sinCosto ? ` ${sinCosto} carta(s) vendida(s) no tienen compras cargadas, así que cuentan como costo $ 0.` : ""}</p>`;
+  if (ultMeses.length) {
+    html += `<h2>Por mes</h2><div class="panel"><div class="leyenda"><span><i style="background:var(--up)"></i>Ventas</span><span><i style="background:var(--gold)"></i>Compras</span></div><div class="barras">` +
+      ultMeses.map(([k, v]) => { const [y, m] = k.split("-"); return `<div class="barra-fila"><span>${MESES[+m - 1]} ${y.slice(2)}</span><div class="barra-par">
+        <div style="display:flex;align-items:center;gap:8px"><div class="barra v" style="width:${v.venta / max * 75}%"></div><small class="num">${ars(v.venta)}</small></div>
+        <div style="display:flex;align-items:center;gap:8px"><div class="barra c" style="width:${v.compra / max * 75}%"></div><small class="num">${ars(v.compra)}</small></div></div></div>`; }).join("") +
+      `</div></div>`;
+  }
+  html += `<h2>Por carta</h2>`;
+  if (!porCarta.length) html += `<div class="vacio"><b>Todavía no vendiste nada</b>Cuando registres ventas, acá ves cuánto ganaste con cada carta.</div>`;
+  else html += `<div class="lista">` + porCarta.sort((a, b) => b.ganancia - a.ganancia).map(({c, i, ganancia}) => `
+    <button class="fila" data-accion="detalle" data-id="${esc(c.id)}">
+      <div><div class="f-nombre">${esc(c.nombre)}</div><div class="f-sub num">${i.vendU} vendida(s) por ${ars(i.vend)}</div></div>
+      <div class="f-precio"><b style="color:${ganancia >= 0 ? "var(--up)" : "var(--down)"}">${ganancia >= 0 ? "+" : ""}${ars(ganancia)}</b></div><span></span>
+    </button>`).join("") + `</div>`;
+  vista.innerHTML = html;
+}
+
+/* ------------------------------------------------------------------- hojas */
+function abrir(html, modal){
+  ui.modal = modal; hoja.innerHTML = html; capa.hidden = false;
+  document.body.style.overflow = "hidden";
+  const f = hoja.querySelector("[autofocus]") || hoja.querySelector(".cerrar");
+  if (f && !modal.sinFoco) f.focus();
+}
+function cerrar(){ if (importando) return; ui.modal = null; capa.hidden = true; hoja.innerHTML = ""; document.body.style.overflow = ""; }
+const cabecera = t => `<div class="hoja-top"><h2>${t}</h2><button class="cerrar" data-accion="cerrar" aria-label="Cerrar">×</button></div>`;
+const opciones = (lista, sel) => lista.map(o => `<option${o === sel ? " selected" : ""}>${esc(o)}</option>`).join("");
+
+function abrirFormCarta(id){
+  const c = id ? cartas.get(id) : null;
+  abrir(cabecera(c ? "Editar carta" : "Nueva carta") + `
+    <form id="f-carta" data-id="${esc(id || "")}">
+      <div class="campo"><label for="c-nombre">Nombre de la carta</label><input id="c-nombre" name="nombre" required value="${esc(c?.nombre)}" placeholder="Ej: Ash Blossom & Joyous Spring" ${c ? "" : "autofocus"}></div>
+      <div class="dos">
+        <div class="campo"><label for="c-set">Código del set</label><input id="c-set" name="set" value="${esc(c?.set)}" placeholder="Ej: MACR-EN036" style="text-transform:uppercase"></div>
+        <div class="campo"><label for="c-rareza">Rareza</label><select id="c-rareza" name="rareza"><option value="">Sin especificar</option>${opciones(RAREZAS, c?.rareza)}</select></div>
+      </div>
+      <p class="ayuda" style="margin-top:-6px">El código está abajo a la derecha de la imagen de la carta.</p>
+      <div class="dos">
+        <div class="campo"><label for="c-idioma">Idioma</label><select id="c-idioma" name="idioma">${opciones(IDIOMAS, c?.idioma || "Inglés")}</select></div>
+        <div class="campo"><label for="c-estado">Estado</label><select id="c-estado" name="estado">${opciones(ESTADOS, c?.estado || "Near Mint")}</select></div>
+      </div>
+      ${c ? "" : `<div class="dos">
+        <div class="campo"><label for="c-cant">Cuántas tenés</label><input id="c-cant" name="cant" type="number" inputmode="numeric" min="0" step="1" value="1"></div>
+        <div class="campo"><label for="c-costo">Pagaste c/u ($)</label><input id="c-costo" name="costo" inputmode="decimal" placeholder="0"></div>
+      </div>`}
+      <div class="campo"><label for="c-notas">Notas</label><input id="c-notas" name="notas" value="${esc(c?.notas)}" placeholder="Ej: carpeta 2, para cambio, firmada"></div>
+      <p class="error" id="c-error" hidden></p>
+      <button class="btn pri" type="submit">${c ? "Guardar cambios" : "Guardar carta"}</button>
+      ${c ? `<button class="btn peligro" type="button" data-accion="borrarCarta" data-id="${esc(c.id)}">Borrar carta y sus movimientos</button>` : ""}
+    </form>`, {tipo: "form"});
+}
+
+function abrirDetalle(id, refresco){
+  const c = cartas.get(id);
+  if (!c) { cerrar(); return; }
+  const i = infoCarta(c);
+  const ps = preciosDe(c, ui.monedaGraf);
+  const otras = preciosDe(c, ui.monedaGraf === "usd" ? "ars" : "usd");
+  if (!ps.length && otras.length) ui.monedaGraf = ui.monedaGraf === "usd" ? "ars" : "usd";
+  const lista = preciosDe(c, ui.monedaGraf);
+  const scroll = hoja.scrollTop;
+  const html = cabecera(esc(c.nombre)) + `
+    <p class="f-sub" style="margin:-6px 0 10px">${esc([c.set, c.rareza, c.idioma, c.estado].filter(Boolean).join(" · "))}${c.notas ? "<br>" + esc(c.notas) : ""}</p>
+    <div class="fila-btns">
+      <button class="btn venta" data-accion="mov" data-t="venta" data-id="${esc(c.id)}" ${i.stock > 0 ? "" : "disabled"}>Vender</button>
+      <button class="btn" data-accion="mov" data-t="compra" data-id="${esc(c.id)}">Comprar más</button>
+    </div>
+    <div class="datos">
+      <div class="dato"><small>Stock</small><b>${i.stock}</b></div>
+      <div class="dato"><small>Costo promedio</small><b>${i.costo != null ? ars(i.costo) : "—"}</b></div>
+      <div class="dato"><small>Vendidas</small><b>${i.vendU}</b></div>
+    </div>
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
+        <strong>Precio en internet</strong>
+        <div class="chips" style="padding:0">
+          <button class="chip" data-accion="monedaGraf" data-m="ars" aria-pressed="${ui.monedaGraf === "ars"}">Pesos (MercadoLibre)</button>
+          <button class="chip" data-accion="monedaGraf" data-m="usd" aria-pressed="${ui.monedaGraf === "usd"}">Dólares (TCGplayer)</button>
+        </div>
+      </div>
+      <div class="grafico">${grafico(lista, ui.monedaGraf)}</div>
+      <div class="fila-btns" style="margin-top:10px">
+        <a class="btn chico" href="${linkTCG(c)}" target="_blank" rel="noopener">Ver en TCGplayer ↗</a>
+        <a class="btn chico" href="${linkML(c)}" target="_blank" rel="noopener">Ver en MercadoLibre ↗</a>
+        <button class="btn chico pri" data-accion="precio" data-id="${esc(c.id)}">Anotar precio</button>
+      </div>
+      ${lista.length ? `<ul class="historial">${lista.slice().reverse().map(p => `<li><span>${fFecha(p.f)}</span><b class="num" style="margin-left:auto">${plata(p.v, p.m)}</b><button class="x" data-accion="borrarPrecio" data-id="${esc(c.id)}" data-f="${p.f}" data-m="${p.m}" aria-label="Borrar precio del ${fFecha(p.f)}">×</button></li>`).join("")}</ul>` : ""}
+    </div>
+    <div class="fila-btns" style="margin-top:12px"><button class="btn" data-accion="editar" data-id="${esc(c.id)}">Editar carta</button></div>`;
+  if (refresco) { hoja.innerHTML = html; hoja.scrollTop = scroll; ui.modal = {tipo: "detalle", id}; }
+  else abrir(html, {tipo: "detalle", id});
+}
+
+function grafico(ps, moneda){
+  if (!ps.length) return `<p class="ayuda" style="padding:18px 0">Todavía no anotaste precios en ${moneda === "usd" ? "dólares" : "pesos"}. Abrí el sitio, fijate el precio y tocá <strong>Anotar precio</strong>.</p>`;
+  const ult = ps[ps.length - 1];
+  const cab = `<div style="display:flex;align-items:baseline;gap:10px;margin:10px 0 2px"><b style="font-family:var(--display);font-size:30px" class="num">${plata(ult.v, moneda)}</b>${ps.length > 1 ? chipVar((ult.v - ps[0].v) / ps[0].v * 100) + `<span class="ayuda">desde el ${fFecha(ps[0].f)}</span>` : ""}</div>`;
+  if (ps.length < 2) return cab + `<p class="ayuda">Con el próximo precio que anotes aparece el gráfico.</p>`;
+  const W = 600, H = 200, L = 8, R = 8, T = 16, B = 26;
+  const xs = ps.map(p => new Date(p.f).getTime()), ys = ps.map(p => p.v);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs) || x0 + 1;
+  let y0 = Math.min(...ys), y1 = Math.max(...ys);
+  if (y0 === y1) { y0 *= .9; y1 *= 1.1; if (!y1) y1 = 1; }
+  const pad = (y1 - y0) * .15; y0 = Math.max(0, y0 - pad); y1 += pad;
+  const px = x => L + (x1 === x0 ? (W - L - R) / 2 : (x - x0) / (x1 - x0) * (W - L - R));
+  const py = y => T + (1 - (y - y0) / (y1 - y0)) * (H - T - B);
+  const pts = ps.map((p, k) => [px(xs[k]), py(p.v)]);
+  const linea = pts.map((p, k) => (k ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+  const area = linea + ` L${pts[pts.length - 1][0].toFixed(1)} ${H - B} L${pts[0][0].toFixed(1)} ${H - B} Z`;
+  const sube = ult.v >= ps[0].v, col = sube ? "var(--up)" : "var(--down)";
+  const grid = [0.25, .5, .75].map(t => `<line x1="${L}" x2="${W - R}" y1="${T + t * (H - T - B)}" y2="${T + t * (H - T - B)}" stroke="var(--line)" stroke-width="1"/>`).join("");
+  const maxV = Math.max(...ys), minV = Math.min(...ys);
+  const pMax = pts[ys.indexOf(maxV)], pMin = pts[ys.indexOf(minV)];
+  const etq = (p, v, arriba) => `<text x="${Math.min(Math.max(p[0], 60), W - 60)}" y="${arriba ? p[1] - 7 : p[1] + 16}" text-anchor="middle" font-size="13" fill="var(--muted)" font-family="Barlow, sans-serif">${esc(plata(v, moneda))}</text>`;
+  return cab + `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Precio entre ${fFecha(ps[0].f)} y ${fFecha(ult.f)}">
+    ${grid}
+    <path d="${area}" fill="${col}" opacity=".12"/>
+    <path d="${linea}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    ${pts.map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="${col}"/>`).join("")}
+    <circle cx="${pts[pts.length - 1][0]}" cy="${pts[pts.length - 1][1]}" r="6" fill="var(--surface)" stroke="${col}" stroke-width="3"/>
+    ${maxV !== minV ? etq(pMax, maxV, true) + etq(pMin, minV, false) : ""}
+    <text x="${L}" y="${H - 6}" font-size="13" fill="var(--muted)" font-family="Barlow, sans-serif">${fFecha(ps[0].f)}</text>
+    <text x="${W - R}" y="${H - 6}" text-anchor="end" font-size="13" fill="var(--muted)" font-family="Barlow, sans-serif">${fFecha(ult.f)}</text>
+  </svg>`;
+}
+
+function abrirFormMov(id, tipo){
+  const c = cartas.get(id); if (!c) return;
+  const i = infoCarta(c);
+  const sugerido = tipo === "venta" ? (i.ars || "") : "";
+  abrir(cabecera(tipo === "venta" ? "Registrar venta" : "Registrar compra") + `
+    <p class="f-sub" style="margin:-6px 0 12px"><strong style="color:var(--ink)">${esc(c.nombre)}</strong> · ${esc(etiquetaCarta(c))} · stock ${i.stock}</p>
+    <form id="f-mov" data-id="${esc(id)}" data-t="${tipo}">
+      <div class="dos">
+        <div class="campo"><label for="m-cant">Cantidad</label><input id="m-cant" name="cant" type="number" inputmode="numeric" min="1" ${tipo === "venta" ? `max="${i.stock}"` : ""} step="1" value="1"></div>
+        <div class="campo"><label for="m-precio">Precio c/u ($)</label><input id="m-precio" name="precio" inputmode="decimal" value="${sugerido ? Math.round(sugerido) : ""}" placeholder="0" autofocus></div>
+      </div>
+      <div class="campo"><label for="m-fecha">Fecha</label><input id="m-fecha" name="fecha" type="date" value="${hoy()}" max="${hoy()}"></div>
+      <div class="campo"><label for="m-nota">Nota</label><input id="m-nota" name="nota" placeholder="${tipo === "venta" ? "Ej: a quién, por dónde" : "Ej: a quién se la compraste"}"></div>
+      <p class="error" id="m-error" hidden></p>
+      <button class="btn ${tipo === "venta" ? "venta" : "pri"}" type="submit">${tipo === "venta" ? "Registrar venta" : "Registrar compra"}</button>
+    </form>`, {tipo: "form"});
+}
+
+function abrirFormPrecio(id){
+  const c = cartas.get(id); if (!c) return;
+  const mon = ui.monedaGraf;
+  abrir(cabecera("Anotar precio") + `
+    <p class="f-sub" style="margin:-6px 0 12px"><strong style="color:var(--ink)">${esc(c.nombre)}</strong> · ${esc(etiquetaCarta(c))}</p>
+    <div class="fila-btns" style="margin-bottom:12px">
+      <a class="btn chico" href="${linkML(c)}" target="_blank" rel="noopener">Abrir MercadoLibre ↗</a>
+      <a class="btn chico" href="${linkTCG(c)}" target="_blank" rel="noopener">Abrir TCGplayer ↗</a>
+    </div>
+    <form id="f-precio" data-id="${esc(id)}">
+      <div class="seg" role="radiogroup" aria-label="Moneda">
+        <input type="radio" name="m" id="p-ars" value="ars" ${mon === "ars" ? "checked" : ""}><label for="p-ars">Pesos ($)</label>
+        <input type="radio" name="m" id="p-usd" value="usd" ${mon === "usd" ? "checked" : ""}><label for="p-usd">Dólares (US$)</label>
+      </div>
+      <div class="dos">
+        <div class="campo"><label for="p-valor">Precio</label><input id="p-valor" name="v" inputmode="decimal" required placeholder="Ej: 4500 o 2,35" autofocus></div>
+        <div class="campo"><label for="p-fecha">Fecha</label><input id="p-fecha" name="f" type="date" value="${hoy()}" max="${hoy()}"></div>
+      </div>
+      <p class="ayuda">Tip: en MercadoLibre mirá varias publicaciones de la misma edición y anotá un precio típico, no el más barato ni el más caro.</p>
+      <p class="error" id="p-error" hidden></p>
+      <button class="btn pri" type="submit">Guardar precio</button>
+    </form>`, {tipo: "form"});
+}
+
+function confirmar(texto, boton, accion){
+  const volver = ui.modal;
+  abrir(cabecera("¿Seguro?") + `<p>${texto}</p><div class="fila-btns">
+    <button class="btn" data-accion="cancelarConf">Cancelar</button>
+    <button class="btn peligro" data-accion="okConf">${boton}</button></div>`, {tipo: "confirmar", accion, volver});
+}
+
+/* ----------------------------------------------------------- importar Excel */
+let importando = false;
+let imp = null;   // {nombre, libro, hojaNombre, raw, txt, base, nCols, primeraFila, filaTitulo, mapa, plan, tareas, listas, hechas}
+
+const CAMPOS = [
+  ["", "No usar"],
+  ["nombre", "Nombre de la carta"],
+  ["cant", "Cantidad"],
+  ["costo", "Pagaste c/u ($)"],
+  ["costoTotal", "Pagaste en total ($)"],
+  ["set", "Código del set"],
+  ["rareza", "Rareza"],
+  ["idioma", "Idioma"],
+  ["estado", "Estado"],
+  ["notas", "Notas"],
+  ["ars", "Precio en internet ($)"],
+  ["usd", "Precio en internet (US$)"],
+  ["fecha", "Fecha de compra"]
+];
+
+let promXLSX = null;
+function cargarXLSX(){
+  if (window.XLSX) return Promise.resolve(window.XLSX);
+  if (promXLSX) return promXLSX;
+  const fuentes = ["https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js",
+                   "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"];
+  const probar = k => new Promise((ok, mal) => {
+    const s = document.createElement("script");
+    s.src = fuentes[k];
+    s.onload = () => window.XLSX ? ok(window.XLSX) : mal(new Error("sin-lector"));
+    s.onerror = () => { s.remove(); k + 1 < fuentes.length ? probar(k + 1).then(ok, mal) : mal(new Error("sin-lector")); };
+    document.head.appendChild(s);
+  });
+  promXLSX = probar(0).catch(e => { promXLSX = null; throw e; });
+  return promXLSX;
+}
+
+/* --- entender los valores de la planilla --- */
+const clave = s => norm(s).replace(/[^a-z0-9]/g, "");
+const ALIAS_RAREZA = {
+  c:"Common", common:"Common", comun:"Common", normal:"Common",
+  r:"Rare", rare:"Rare", rara:"Rare",
+  sr:"Super Rare", super:"Super Rare", superrara:"Super Rare",
+  ur:"Ultra Rare", ultra:"Ultra Rare", ultrarara:"Ultra Rare",
+  scr:"Secret Rare", secr:"Secret Rare", secret:"Secret Rare", secreta:"Secret Rare", secretarara:"Secret Rare", rarasecreta:"Secret Rare",
+  utr:"Ultimate Rare", ultimate:"Ultimate Rare",
+  gr:"Ghost Rare", ghost:"Ghost Rare",
+  str:"Starlight Rare", starlight:"Starlight Rare",
+  qcscr:"Quarter Century Secret Rare", qcsr:"Quarter Century Secret Rare", qcr:"Quarter Century Secret Rare", qc:"Quarter Century Secret Rare",
+  quartercentury:"Quarter Century Secret Rare", quartercenturysecret:"Quarter Century Secret Rare", "25th":"Quarter Century Secret Rare",
+  cr:"Collector's Rare", collector:"Collector's Rare", collectors:"Collector's Rare",
+  pscr:"Prismatic Secret Rare", prismatic:"Prismatic Secret Rare", prismaticsecret:"Prismatic Secret Rare",
+  plscr:"Platinum Secret Rare", platinum:"Platinum Secret Rare", platinumsecret:"Platinum Secret Rare",
+  gur:"Gold Rare", gold:"Gold Rare", goldultrarare:"Gold Rare",
+  sp:"Short Print", shortprint:"Short Print"
+};
+for (const r of RAREZAS) ALIAS_RAREZA[clave(r)] = r;
+const rarezaDe = s => ALIAS_RAREZA[clave(s)] || "";
+
+const ALIAS_IDIOMA = {
+  en:"Inglés", eng:"Inglés", ing:"Inglés", ingles:"Inglés", english:"Inglés",
+  es:"Español", esp:"Español", sp:"Español", spa:"Español", espanol:"Español", spanish:"Español", castellano:"Español",
+  pt:"Portugués", por:"Portugués", port:"Portugués", portugues:"Portugués", portuguese:"Portugués",
+  fr:"Francés", fra:"Francés", frances:"Francés", french:"Francés",
+  de:"Alemán", ger:"Alemán", ale:"Alemán", aleman:"Alemán", german:"Alemán",
+  it:"Italiano", ita:"Italiano", italiano:"Italiano", italian:"Italiano",
+  jp:"Japonés", ja:"Japonés", jap:"Japonés", japones:"Japonés", japanese:"Japonés",
+  otro:"Otro"
+};
+const idiomaDe = s => ALIAS_IDIOMA[clave(s)] || "";
+function idiomaDeSet(set){
+  const m = /-([A-Z]{1,2})\d/.exec(set || "");
+  if (!m) return "";
+  return {EN:"Inglés", E:"Inglés", SP:"Español", S:"Español", PT:"Portugués", P:"Portugués", FR:"Francés", F:"Francés",
+          DE:"Alemán", G:"Alemán", IT:"Italiano", I:"Italiano", JP:"Japonés", JA:"Japonés", J:"Japonés"}[m[1]] || "";
+}
+
+const ALIAS_ESTADO = {
+  nm:"Near Mint", nearmint:"Near Mint", mint:"Near Mint", m:"Near Mint", nueva:"Near Mint", nuevo:"Near Mint", perfecta:"Near Mint",
+  perfecto:"Near Mint", impecable:"Near Mint", excelente:"Near Mint", sinuso:"Near Mint",
+  lp:"Lightly Played", lightlyplayed:"Lightly Played", slightlyplayed:"Lightly Played", pocojugada:"Lightly Played",
+  pocouso:"Lightly Played", muybuena:"Lightly Played", muybueno:"Lightly Played",
+  mp:"Moderately Played", moderatelyplayed:"Moderately Played", played:"Moderately Played", jugada:"Moderately Played",
+  usada:"Moderately Played", buena:"Moderately Played", bueno:"Moderately Played", regular:"Moderately Played",
+  hp:"Heavily Played", heavilyplayed:"Heavily Played", muyjugada:"Heavily Played", muyusada:"Heavily Played", gastada:"Heavily Played", mala:"Heavily Played",
+  d:"Damaged", dmg:"Damaged", damaged:"Damaged", danada:"Damaged", rota:"Damaged"
+};
+const estadoDe = s => ALIAS_ESTADO[clave(s)] || "";
+
+// "$ 4.500" → 4500 · "2,35" → 2.35 · "1.234,50" → 1234.5 (en pesos un punto con 3 cifras es de miles)
+function aNumero(v, conDecimales){
+  if (typeof v === "number") return isFinite(v) ? v : NaN;
+  let s = String(v ?? "").trim().replace(/[^\d.,-]/g, "");
+  if (!/\d/.test(s)) return NaN;
+  const iC = s.lastIndexOf(","), iP = s.lastIndexOf(".");
+  if (iC >= 0 && iP >= 0) {
+    const dec = iC > iP ? "," : ".";
+    s = s.split(dec === "," ? "." : ",").join("").replace(dec, ".");
+  } else if (iC >= 0) {
+    const tras = s.length - iC - 1;
+    s = s.split(",").length > 2 || (tras === 3 && !conDecimales) ? s.replace(/,/g, "") : s.replace(",", ".");
+  } else if (iP >= 0) {
+    const tras = s.length - iP - 1;
+    if (s.split(".").length > 2 || (tras === 3 && !conDecimales)) s = s.replace(/\./g, "");
+  }
+  const n = parseFloat(s);
+  return isFinite(n) ? n : NaN;
+}
+function cantDe(v){
+  if (typeof v === "number") return isFinite(v) ? Math.max(0, Math.round(v)) : 1;
+  const s = String(v ?? "").trim();
+  if (!s) return 1;
+  if (/^(-+|no|ninguna|nada)$/i.test(s)) return 0;
+  const m = /\d+/.exec(s);
+  return m ? parseInt(m[0], 10) : 1;
+}
+function fechaDe(v){
+  const iso = (y, m, d) => {
+    if (!(y > 1990 && y < 2100 && m >= 1 && m <= 12 && d >= 1 && d <= 31)) return null;
+    const f = y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0");
+    return f > hoy() ? hoy() : f;
+  };
+  if (typeof v === "number" && v > 20000 && v < 80000) {   // fecha guardada como número de Excel
+    const d = new Date(Math.round((v - 25569) * 86400000));
+    return iso(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate());
+  }
+  if (v instanceof Date && !isNaN(v)) return iso(v.getFullYear(), v.getMonth() + 1, v.getDate());
+  const s = String(v ?? "").trim();
+  let m = /^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})/.exec(s);
+  if (m) return iso(+m[1], +m[2], +m[3]);
+  m = /^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{2,4})/.exec(s);
+  if (m) return iso(m[3].length === 2 ? 2000 + +m[3] : +m[3], +m[2], +m[1]);
+  return null;
+}
+
+/* --- adivinar qué hay en cada columna --- */
+function adivinarCampo(titulo){
+  const t = " " + norm(titulo).replace(/[^a-z0-9$]+/g, " ").trim() + " ";
+  if (t.trim().length < 1 || t.length > 45) return "";
+  const hay = (...ps) => ps.some(p => p.endsWith("*") ? t.includes(" " + p.slice(0, -1)) : t.includes(" " + p + " "));
+  if (hay("usd", "us$", "u$s", "dolar*", "tcg*")) return "usd";
+  if (hay("cant*", "stock", "qty", "quantity", "unidades", "copias", "cuantas", "tengo")) return "cant";
+  if (hay("total")) return "costoTotal";
+  if (hay("fecha*", "date", "dia")) return "fecha";
+  if (hay("rareza*", "rarity", "rare", "rar")) return "rareza";
+  if (hay("idioma*", "lang*", "lengua*")) return "idioma";
+  if (hay("estado*", "condicion*", "condition", "cond")) return "estado";
+  if (hay("set", "sets", "codigo*", "cod", "code", "edicion*", "expansion*", "coleccion*")) return "set";
+  if (hay("nota*", "obs*", "coment*", "detalle*", "ubicacion*", "carpeta*")) return "notas";
+  if (hay("compr*", "pag*", "costo*", "cost", "invert*")) return "costo";
+  if (hay("ml", "mercado*", "valor*", "venta*", "vale", "actual", "vender*", "publica*")) return "ars";
+  if (hay("precio*", "price", "$")) return "costo";
+  if (hay("nombre*", "carta*", "name", "card*", "descripcion*")) return "nombre";
+  return "";
+}
+function adivinarPorContenido(valores){
+  const v = valores.map(x => String(x ?? "").trim()).filter(Boolean);
+  if (!v.length) return "";
+  const parte = f => v.filter(f).length / v.length;
+  if (parte(s => /^[A-Z0-9]{2,5}-[A-Z]{0,2}\d{2,3}$/i.test(s)) > .6) return "set";
+  if (parte(s => rarezaDe(s)) > .6) return "rareza";
+  if (parte(s => s.length <= 12 && idiomaDe(s)) > .6) return "idioma";
+  if (parte(s => s.length <= 20 && estadoDe(s)) > .6) return "estado";
+  if (parte(s => /^\d{1,2}$/.test(s)) > .8) return "cant";
+  if (parte(s => /[a-záéíóúñ]{3,}/i.test(s) && !/^[\d$]/.test(s)) > .6) return "nombre";
+  return "";
+}
+const filaVacia = fila => !fila || fila.every(x => String(x ?? "").trim() === "");
+function filasDatos(){
+  const out = [];
+  for (let r = imp.filaTitulo + 1; r < imp.raw.length; r++)
+    if (!filaVacia(imp.txt[r])) out.push({raw: imp.raw[r] || [], txt: imp.txt[r] || [], n: imp.base.r + r + 1});
+  return out;
+}
+function detectarTitulos(){
+  let mejor = -1, puntos = 0, campoUnico = "";
+  for (let r = imp.primeraFila; r >= 0 && r < Math.min(imp.txt.length, imp.primeraFila + 10); r++) {
+    const fila = imp.txt[r] || [];
+    const campos = fila.map(x => typeof x === "string" && !/^\s*[\d$.,]+\s*$/.test(x) ? adivinarCampo(x) : "").filter(Boolean);
+    if (campos.length > puntos) { mejor = r; puntos = campos.length; campoUnico = campos[0]; }
+  }
+  if (puntos >= 2 || (puntos === 1 && ["nombre", "cant"].includes(campoUnico))) return mejor;
+  return -1;
+}
+function adivinarMapa(){
+  const mapa = new Array(imp.nCols).fill(""), usados = new Set();
+  const tit = imp.filaTitulo >= 0 ? imp.txt[imp.filaTitulo] || [] : [];
+  const datos = filasDatos().slice(0, 60);
+  for (let i = 0; i < imp.nCols; i++) {
+    const g = tit[i] ? adivinarCampo(tit[i]) : "";
+    if (g && (g === "notas" || !usados.has(g))) { mapa[i] = g; usados.add(g); }
+  }
+  for (let i = 0; i < imp.nCols; i++) {
+    if (mapa[i]) continue;
+    const g = adivinarPorContenido(datos.map(f => f.txt[i]));
+    if (g && !usados.has(g)) { mapa[i] = g; usados.add(g); }
+  }
+  return mapa;
+}
+
+/* --- leer el archivo --- */
+async function leerArchivo(file){
+  const XLSX = await cargarXLSX();
+  const buf = await file.arrayBuffer();
+  try {
+    if (/\.(csv|tsv|txt)$/i.test(file.name)) {
+      let texto;
+      try { texto = new TextDecoder("utf-8", {fatal: true}).decode(buf); }
+      catch (e) { texto = new TextDecoder("windows-1252").decode(buf); }
+      return XLSX.read(texto.replace(/^﻿/, ""), {type: "string", raw: true});
+    }
+    return XLSX.read(buf, {type: "array"});
+  } catch (e) { throw new Error("ilegible"); }
+}
+function elegirHoja(nombreHoja){
+  const XLSX = window.XLSX, ws = imp.libro.Sheets[nombreHoja];
+  const conDatos = ws && ws["!ref"];
+  imp.hojaNombre = nombreHoja;
+  imp.raw = conDatos ? XLSX.utils.sheet_to_json(ws, {header: 1, raw: true, defval: "", blankrows: true}) : [];
+  imp.txt = conDatos ? XLSX.utils.sheet_to_json(ws, {header: 1, raw: false, defval: "", blankrows: true}) : [];
+  imp.base = conDatos ? XLSX.utils.decode_range(ws["!ref"]).s : {r: 0, c: 0};
+  imp.nCols = imp.txt.reduce((m, f) => Math.max(m, f.length), 0);
+  imp.primeraFila = imp.txt.findIndex(f => !filaVacia(f));
+  imp.filaTitulo = detectarTitulos();
+  imp.mapa = adivinarMapa();
+  imp.tareas = null;
+}
+async function elegirArchivo(file){
+  if (importando) return;
+  const boton = hoja.querySelector(".lee");
+  if (boton) boton.textContent = "Leyendo el archivo…";
+  let libro;
+  try { libro = await leerArchivo(file); }
+  catch (e) {
+    if (boton) boton.textContent = imp ? "Cambiar archivo" : "Elegir archivo";
+    const el = hoja.querySelector("#imp-error");
+    if (el) { el.hidden = false; el.textContent = e.message === "sin-lector"
+      ? "No se pudo cargar el lector de Excel. Revisá la conexión a internet y probá de nuevo."
+      : "No pude leer ese archivo. Abrilo en Excel, guardalo como .xlsx (o .csv) y elegilo de nuevo."; }
+    return;
+  }
+  imp = {nombre: file.name, libro};
+  const hojaConDatos = libro.SheetNames.find(n => {
+    const ws = libro.Sheets[n];
+    return ws && ws["!ref"] && window.XLSX.utils.sheet_to_json(ws, {header: 1, defval: ""}).some(f => !filaVacia(f));
+  });
+  elegirHoja(hojaConDatos || libro.SheetNames[0]);
+  hoja.scrollTop = 0;
+  pintarImport();
+}
+
+/* --- armar lo que se va a guardar --- */
+const claveCarta = c => [clave(c.nombre), String(c.set || "").toUpperCase(), c.rareza || "", c.idioma || "Inglés"].join("|");
+function armarPlan(){
+  const m = imp.mapa;
+  const col = campo => m.indexOf(campo);
+  const colsNotas = m.map((c, i) => c === "notas" ? i : -1).filter(i => i >= 0);
+  const existentes = new Map([...cartas.values()].map(c => [claveCarta(c), c]));
+  const nuevas = new Map(), tocadas = new Map(), movsNuevos = [], filas = [];
+  const fechaHoy = hoy(), nota = "Importado de " + imp.nombre;
+  let salteadas = 0, unidades = 0;
+  const agregarNota = (carta, n) => {
+    if (!n || (carta.notas || "").includes(n)) return false;
+    carta.notas = carta.notas ? carta.notas + " · " + n : n; return true;
+  };
+  if (col("nombre") < 0) return {sinNombre: true, filas, nuevas: 0, existentes: 0, unidades, salteadas, cartas: [], movs: []};
+
+  for (const f of filasDatos()) {
+    const raw = campo => col(campo) < 0 ? "" : f.raw[col(campo)];
+    const txt = campo => col(campo) < 0 ? "" : String(f.txt[col(campo)] ?? "").trim();
+    const nombre = txt("nombre").replace(/\s+/g, " ");
+    if (!nombre || /^(sub)?total(es)?\b/.test(norm(nombre))) { salteadas++; continue; }
+    const notas = colsNotas.map(i => String(f.txt[i] ?? "").trim()).filter(Boolean);
+    const set = txt("set").toUpperCase().replace(/\s+/g, "");
+    let rareza = "", idioma = "", estado = "Near Mint";
+    if (txt("rareza")) { rareza = rarezaDe(txt("rareza")); if (!rareza) notas.push("Rareza: " + txt("rareza")); }
+    if (txt("idioma")) { idioma = idiomaDe(txt("idioma")); if (!idioma) { idioma = "Otro"; notas.push("Idioma: " + txt("idioma")); } }
+    else idioma = idiomaDeSet(set) || "Inglés";
+    if (txt("estado")) { const e = estadoDe(txt("estado")); if (e) estado = e; else notas.push("Estado: " + txt("estado")); }
+    const cant = col("cant") >= 0 ? cantDe(raw("cant")) : 1;
+    let costo = 0;
+    if (col("costo") >= 0) { const n = aNumero(raw("costo"), false); if (n > 0) costo = n; }
+    else if (col("costoTotal") >= 0) { const n = aNumero(raw("costoTotal"), false); if (n > 0 && cant > 0) costo = n / cant; }
+    costo = Math.round(costo * 100) / 100;
+    const fecha = col("fecha") >= 0 ? fechaDe(raw("fecha")) || fechaDe(txt("fecha")) || fechaHoy : fechaHoy;
+    const precios = [];
+    if (col("ars") >= 0) { const n = aNumero(raw("ars"), false); if (n > 0) precios.push({f: fechaHoy, v: n, m: "ars"}); }
+    if (col("usd") >= 0) { const n = aNumero(raw("usd"), true); if (n > 0) precios.push({f: fechaHoy, v: Math.round(n * 100) / 100, m: "usd"}); }
+
+    const k = claveCarta({nombre, set, rareza, idioma});
+    let carta = nuevas.get(k), ya = false;
+    if (!carta) {
+      const ex = existentes.get(k);
+      if (ex) { ya = true; carta = tocadas.get(ex.id); if (!carta) { carta = {...ex, precios: [...(ex.precios || [])], _cambio: false}; tocadas.set(ex.id, carta); } }
+      else { carta = {id: nuevoId(), nombre, set, rareza, idioma, estado, notas: "", creada: fechaHoy, precios: []}; nuevas.set(k, carta); }
+    }
+    for (const n of notas) if (agregarNota(carta, n) && ya) carta._cambio = true;
+    for (const p of precios) {
+      carta.precios = carta.precios.filter(q => !(q.f === p.f && q.m === p.m)); carta.precios.push(p);
+      if (ya) carta._cambio = true;
+    }
+    if (cant > 0) {
+      movsNuevos.push({id: nuevoId(), cartaId: carta.id, tipo: "compra", cant, precio: costo, fecha, nota, ts: Date.now() + movsNuevos.length});
+      unidades += cant;
+      if (ya) tocadas.get(carta.id)._mov = true;
+    }
+    filas.push({carta, cant, costo, precios, ya});
+  }
+  const aGuardar = [...nuevas.values(), ...[...tocadas.values()].filter(c => c._cambio)].map(c => { const o = {...c}; delete o._cambio; delete o._mov; return o; });
+  return {filas, nuevas: nuevas.size, existentes: tocadas.size, unidades, salteadas, cartas: aGuardar, movs: movsNuevos};
+}
+
+/* --- pantallas del importador --- */
+const inputArchivo = texto => `<label class="btn lee ${imp ? "chico" : "pri archivo"}" for="imp-archivo">${texto}</label>
+  <input type="file" id="imp-archivo" class="oculto" accept=".xlsx,.xlsm,.xls,.ods,.csv,.tsv,.txt">`;
+
+function abrirImportar(){
+  if (importando) return;
+  if (!cargadoC || !cargadoM) { toast("Esperá un segundo, todavía están cargando tus cartas"); return; }
+  imp = null;
+  abrir(cabecera("Importar desde Excel") + `
+    <p style="margin-top:0">Elegí tu planilla (Excel, .ods o .csv). Cada fila tiene que ser una carta. Antes de cargar nada te muestro qué entendí de cada columna, así lo revisás.</p>
+    ${inputArchivo("Elegir archivo")}
+    <p class="error" id="imp-error" hidden></p>
+    <p class="ayuda">Sirve aunque las columnas tengan otros nombres o estén en otro orden: después elegís qué es cada una.</p>`, {tipo: "importar"});
+  cargarXLSX().catch(() => {});
+}
+
+function pintarImport(){
+  if (!imp || !imp.libro || importando) return;
+  const scroll = hoja.scrollTop;
+  const plan = imp.plan = armarPlan();
+  const tit = imp.filaTitulo >= 0 ? imp.txt[imp.filaTitulo] || [] : [];
+  const datos = filasDatos();
+  const letra = i => window.XLSX.utils.encode_col(imp.base.c + i);
+  const columnas = [];
+  for (let i = 0; i < imp.nCols; i++) {
+    const ej = [...new Set(datos.slice(0, 40).map(f => String(f.txt[i] ?? "").trim()).filter(Boolean))].slice(0, 3);
+    if (!ej.length && !String(tit[i] ?? "").trim()) continue;
+    const corto = s => s.length > 26 ? s.slice(0, 25) + "…" : s;
+    columnas.push(`<div class="col-imp ${imp.mapa[i] ? "usada" : ""}">
+      <div><b>${tit[i] ? "“" + esc(String(tit[i]).trim()) + "”" : "Columna " + letra(i)}</b>
+        <small>${ej.length ? "Ej: " + ej.map(s => esc(corto(s))).join(" · ") : "vacía"}</small></div>
+      <select class="imp-campo" data-col="${i}" aria-label="Qué hay en la columna ${letra(i)}">
+        ${CAMPOS.map(([k, t]) => `<option value="${k}"${imp.mapa[i] === k ? " selected" : ""}>${t}</option>`).join("")}
+      </select></div>`);
+  }
+  const hojas = imp.libro.SheetNames;
+  const yaImportado = movs.some(m => m.nota === "Importado de " + imp.nombre);
+  const total = plan.nuevas + plan.existentes;
+  const filaPrevia = ({carta, cant, costo, precios, ya}) => {
+    const p = precios.find(x => x.m === "ars") || precios.find(x => x.m === "usd");
+    const extra = [costo ? `pagaste ${ars(costo)} c/u` : "", p ? `vale ${plata(p.v, p.m)}` : "", ya ? "ya la tenías" : ""].filter(Boolean).join(" · ");
+    return `<div class="fila previa">
+      <div><div class="f-nombre">${carta.rareza ? `<span class="rar" style="background:${COLOR_RAREZA[carta.rareza] || "var(--muted)"}"></span>` : ""}${esc(carta.nombre)}</div>
+      <div class="f-sub">${esc(etiquetaCarta(carta))}${carta.estado && carta.estado !== "Near Mint" ? " · " + esc(carta.estado) : ""}${extra ? " · " + esc(extra) : ""}</div>
+      ${carta.notas ? `<div class="f-sub">${esc(carta.notas)}</div>` : ""}</div>
+      <span></span><span class="f-mas num ${cant ? "" : "cero"}">+${cant}</span></div>`;
+  };
+
+  hoja.innerHTML = cabecera("Importar desde Excel") + `
+    <div class="imp-cab"><p class="f-sub"><strong style="color:var(--ink)">${esc(imp.nombre)}</strong> · ${datos.length} fila(s) con datos</p>${inputArchivo("Cambiar archivo")}</div>
+    <p class="error" id="imp-error" hidden></p>
+    ${hojas.length > 1 ? `<div class="campo" style="margin:8px 0"><label for="imp-hoja">Hoja del Excel</label>
+      <select id="imp-hoja" class="sel-hoja">${hojas.map(h => `<option${h === imp.hojaNombre ? " selected" : ""}>${esc(h)}</option>`).join("")}</select></div>` : ""}
+    <h2>¿Qué hay en cada columna?</h2>
+    <p class="ayuda" style="margin-bottom:10px">Revisá que esté bien. Lo que no te sirva dejalo en “No usar”.</p>
+    ${columnas.length ? `<div class="cols">${columnas.join("")}</div>` : `<div class="vacio"><b>Esta hoja está vacía</b>${hojas.length > 1 ? "Elegí otra hoja arriba." : "Probá con otro archivo."}</div>`}
+    ${imp.primeraFila >= 0 ? `<label class="check"><input type="checkbox" id="imp-titulos" ${imp.filaTitulo >= 0 ? "checked" : ""}>
+      <span>La fila ${imp.base.r + (imp.filaTitulo >= 0 ? imp.filaTitulo : imp.primeraFila) + 1} tiene los títulos de las columnas (no es una carta)</span></label>` : ""}
+    <h2>Así van a quedar</h2>
+    ${plan.sinNombre ? `<p class="error">Elegí qué columna tiene el nombre de la carta.</p>` : !plan.filas.length ? `<div class="vacio"><b>No encontré cartas</b>Revisá qué columna es el nombre.</div>` : `
+      <p class="resumen"><b>${plan.nuevas}</b> carta(s) nueva(s)${plan.existentes ? ` · <b>${plan.existentes}</b> que ya tenías (se les suma el stock)` : ""} · <b>${plan.unidades}</b> unidades</p>
+      ${plan.salteadas ? `<p class="ayuda">${plan.salteadas} fila(s) sin nombre se saltean.</p>` : ""}
+      ${col("cant") < 0 ? `<p class="ayuda">No hay columna de cantidad: cuento 1 de cada una.</p>` : ""}
+      <div class="lista" style="margin-top:10px">${plan.filas.slice(0, 6).map(filaPrevia).join("")}</div>
+      ${plan.filas.length > 6 ? `<p class="ayuda" style="margin-top:8px">…y ${plan.filas.length - 6} fila(s) más.</p>` : ""}`}
+    <div class="importar-fin">
+      ${yaImportado ? `<div class="aviso" style="margin:0">Ya importaste un archivo llamado “${esc(imp.nombre)}”. Si lo cargás de nuevo, el stock se suma otra vez.</div>` : ""}
+      <button class="btn pri" data-accion="importarYa" ${!plan.sinNombre && plan.filas.length ? "" : "disabled"}>${total ? `Cargar ${total} carta${total === 1 ? "" : "s"}` : "Cargar"}</button>
+    </div>`;
+  hoja.scrollTop = scroll;
+  function col(c){ return imp.mapa.indexOf(c); }
+}
+
+function pintarProgreso(){
+  const tot = imp.tareas.length, h = imp.hechas, p = tot ? Math.round(h / tot * 100) : 100;
+  let el = hoja.querySelector("#imp-prog");
+  if (!el) {
+    hoja.innerHTML = `<div class="hoja-top"><h2>Cargando tus cartas…</h2></div>
+      <div id="imp-prog"></div><p class="ayuda">No cierres la app hasta que termine.</p>`;
+    el = hoja.querySelector("#imp-prog");
+  }
+  el.innerHTML = `<div class="progreso" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${p}"><i style="width:${p}%"></i></div><p class="num" style="margin:0">${p}%</p>`;
+}
+
+async function ejecutarImport(){
+  if (!imp || !imp.plan || importando) return;
+  const plan = imp.plan;
+  if (!imp.tareas) {
+    imp.tareas = [...plan.cartas.map(o => ({col: "c", o})), ...plan.movs.map(o => ({col: "m", o}))];
+    imp.listas = imp.tareas.map(() => false);
+    imp.hechas = 0;
+  }
+  importando = true;
+  hoja.innerHTML = "";
+  pintarProgreso();
+  const pendientes = imp.tareas.map((t, i) => i).filter(i => !imp.listas[i]);
+  let k = 0, error = null;
+  const trabajar = async () => {
+    while (!error && k < pendientes.length) {
+      const i = pendientes[k++], {col, o} = imp.tareas[i];
+      try {
+        if (modoPrueba) { if (col === "c") cartas.set(o.id, o); else movs.push(o); }
+        else await conReintento(() => (col === "c" ? colCartas : colMovs).doc(o.id).set(sinId(o)));
+        imp.listas[i] = true; imp.hechas++;
+        pintarProgreso();
+      } catch (e) { error = e; }
+    }
+  };
+  await Promise.all([0, 1, 2, 3].map(trabajar));
+  if (!error && modoPrueba) {
+    try { persistir(); }
+    catch (e) { error = e; try { leerLocal(); } catch (_) {} imp.listas = imp.listas.map(() => false); imp.hechas = 0; }
+  }
+  importando = false;
+  if (error) {
+    const lleno = error && error.code === "quota_exceeded";
+    hoja.innerHTML = cabecera("No se pudo terminar") + `
+      <p>Se guardó el ${Math.round(imp.hechas / imp.tareas.length * 100)}% de la planilla. ${lleno ? "Se llenó el espacio de la app." : "Algo falló al guardar."}</p>
+      <p class="ayuda">Tocá <strong>Reintentar</strong> para cargar lo que faltó: lo que ya se guardó no se repite.</p>
+      <div class="fila-btns"><button class="btn" data-accion="cerrar">Cerrar</button>${lleno ? "" : `<button class="btn pri" data-accion="reintentarImport">Reintentar</button>`}</div>`;
+    render();
+    return;
+  }
+  const n = plan.nuevas + plan.existentes;
+  imp = null;
+  cerrar();
+  Object.assign(ui, {tab: "stock", q: "", rareza: null});
+  window.scrollTo(0, 0);
+  render();
+  toast(`Listo: ${n} carta${n === 1 ? "" : "s"} importada${n === 1 ? "" : "s"}`);
+}
+
+/* ------------------------------------------------------ copia de seguridad */
+function abrirCopia(){
+  if (importando) return;
+  abrir(cabecera("Copia de seguridad") + `
+    <p style="margin-top:0">Tus cartas se guardan <strong>solo en este dispositivo</strong>. Si desinstalás la app, borrás los datos del navegador o cambiás de celular, se pierden.</p>
+    <p>Guardá una copia cada tanto (por ejemplo en Drive o mandándotela por WhatsApp). Con ese archivo recuperás todo, acá o en otro celular.</p>
+    <div class="fila-btns">
+      <button class="btn pri" data-accion="exportarCopia">Guardar copia</button>
+      <label class="btn" for="copia-archivo">Restaurar una copia</label>
+      <input type="file" id="copia-archivo" class="oculto" accept=".json,application/json">
+    </div>
+    <p class="error" id="copia-error" hidden></p>
+    <p class="ayuda" style="margin-top:12px">Ahora tenés ${cartas.size} carta(s) y ${movs.length} movimiento(s) guardados.</p>`, {tipo: "copia"});
+}
+function exportarCopia(){
+  const blob = new Blob([JSON.stringify(datosCopia())], {type: "application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "mis-cartas-" + hoy() + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast("Copia guardada en Descargas");
+}
+function limpiarCopia(d){
+  if (!d || d.app !== "mis-cartas" || !Array.isArray(d.cartas) || !Array.isArray(d.movs)) return null;
+  const txt = v => typeof v === "string" ? v : "";
+  const esFecha = v => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
+  const num = v => typeof v === "number" && isFinite(v) && v >= 0;
+  const cs = new Map();
+  for (const c of d.cartas) {
+    if (!c || typeof c.id !== "string" || !c.id || !txt(c.nombre).trim()) continue;
+    cs.set(c.id, {id: c.id, nombre: c.nombre, set: txt(c.set), rareza: txt(c.rareza), idioma: txt(c.idioma) || "Inglés",
+      estado: txt(c.estado) || "Near Mint", notas: txt(c.notas), creada: esFecha(c.creada) ? c.creada : hoy(),
+      precios: (Array.isArray(c.precios) ? c.precios : []).filter(p => p && esFecha(p.f) && num(p.v) && (p.m === "usd" || p.m === "ars")).map(p => ({f: p.f, v: p.v, m: p.m}))});
+  }
+  const ms = [];
+  for (const m of d.movs) {
+    if (!m || typeof m.id !== "string" || !cs.has(m.cartaId) || !(m.tipo === "compra" || m.tipo === "venta") || !num(m.cant) || !num(m.precio) || !esFecha(m.fecha)) continue;
+    ms.push({id: m.id, cartaId: m.cartaId, tipo: m.tipo, cant: m.cant, precio: m.precio, fecha: m.fecha, nota: txt(m.nota), ts: typeof m.ts === "number" ? m.ts : 0});
+  }
+  return {cartas: cs, movs: ms, fecha: esFecha(d.fecha) ? d.fecha : null};
+}
+async function restaurarCopia(file){
+  let d = null;
+  try { d = limpiarCopia(JSON.parse(await file.text())); } catch (e) {}
+  if (!d) { const el = $("#copia-error"); if (el) { el.hidden = false; el.textContent = "Ese archivo no es una copia de Mis Cartas."; } return; }
+  confirmar(`Se reemplaza todo lo que hay en este dispositivo (${cartas.size} carta(s)) por la copia${d.fecha ? " del " + fFecha(d.fecha) : ""}: <strong>${d.cartas.size} carta(s)</strong> y ${d.movs.length} movimiento(s).`, "Restaurar copia",
+    async () => { local(() => { cartas = d.cartas; movs = d.movs; }); toast("Copia restaurada"); });
+}
+
+/* ---------------------------------------------------------------- eventos */
+document.addEventListener("click", async ev => {
+  const t = ev.target.closest("[data-accion], [data-tab]");
+  if (!t) { if (ev.target === capa) cerrar(); return; }
+  if (t.dataset.tab) { ui.tab = t.dataset.tab; window.scrollTo(0, 0); render(); return; }
+  const a = t.dataset.accion, id = t.dataset.id;
+  switch (a) {
+    case "nueva": abrirFormCarta(); break;
+    case "importar": abrirImportar(); break;
+    case "copia": abrirCopia(); break;
+    case "exportarCopia": exportarCopia(); break;
+    case "importarYa": case "reintentarImport": t.disabled = true; await ejecutarImport(); break;
+    case "cerrar": cerrar(); break;
+    case "detalle": abrirDetalle(id); break;
+    case "editar": abrirFormCarta(id); break;
+    case "mov": abrirFormMov(id, t.dataset.t); break;
+    case "precio": abrirFormPrecio(id); break;
+    case "soloStock": ui.soloStock = !ui.soloStock; vistaStock(); break;
+    case "rareza": ui.rareza = ui.rareza === t.dataset.r ? null : t.dataset.r; vistaStock(); break;
+    case "tipoMov": ui.tipoMov = t.dataset.t; vistaMovs(); break;
+    case "monedaGraf": ui.monedaGraf = t.dataset.m; abrirDetalle(ui.modal.id, true); break;
+    case "borrarMov": {
+      const m = movs.find(x => x.id === id), c = m && cartas.get(m.cartaId);
+      confirmar(`Se borra la ${m.tipo} de ${m.cant} × ${esc(c ? c.nombre : "carta")} del ${fFecha(m.fecha)}. El stock se recalcula.`, "Borrar movimiento",
+        async () => { await borrarMovDB(id); toast("Movimiento borrado"); });
+      break;
+    }
+    case "borrarCarta": {
+      const c = cartas.get(id);
+      confirmar(`Se borra <strong>${esc(c.nombre)}</strong> con todas sus compras, ventas y precios. No se puede deshacer.`, "Borrar carta",
+        async () => { await borrarCartaDB(id); toast("Carta borrada"); });
+      break;
+    }
+    case "borrarPrecio": {
+      const c = cartas.get(id);
+      const precios = (c.precios || []).filter(p => !(p.f === t.dataset.f && p.m === t.dataset.m));
+      await guardarCarta({...c, precios});
+      if (modoPrueba) abrirDetalle(id, true);
+      break;
+    }
+    case "cancelarConf": { const v = ui.modal.volver; v && v.tipo === "detalle" ? abrirDetalle(v.id) : cerrar(); break; }
+    case "okConf": {
+      const {accion, volver} = ui.modal;
+      t.disabled = true;
+      try { await accion(); } catch (e) { t.disabled = false; return; }
+      if (volver && volver.tipo === "detalle" && cartas.has(volver.id)) abrirDetalle(volver.id); else cerrar();
+      break;
+    }
+  }
+});
+
+document.addEventListener("input", ev => {
+  if (ev.target.id === "q") { ui.q = ev.target.value; pintarLista(); }
+});
+document.addEventListener("keydown", ev => { if (ev.key === "Escape" && !capa.hidden) cerrar(); });
+document.addEventListener("change", ev => {
+  const t = ev.target;
+  if (t.id === "imp-archivo") { if (t.files && t.files[0]) elegirArchivo(t.files[0]); t.value = ""; return; }
+  if (t.id === "copia-archivo") { if (t.files && t.files[0]) restaurarCopia(t.files[0]); t.value = ""; return; }
+  if (!imp || !imp.libro) return;
+  if (t.id === "imp-hoja") { elegirHoja(t.value); pintarImport(); }
+  else if (t.id === "imp-titulos") { imp.filaTitulo = t.checked ? imp.primeraFila : -1; imp.mapa = adivinarMapa(); pintarImport(); }
+  else if (t.classList.contains("imp-campo")) {
+    const col = +t.dataset.col, campo = t.value;
+    // cada dato sale de una sola columna (menos las notas, que se juntan)
+    if (campo && campo !== "notas") imp.mapa = imp.mapa.map((c, i) => i !== col && c === campo ? "" : c);
+    imp.mapa[col] = campo;
+    pintarImport();
+  }
+});
+
+function mostrarError(idEl, texto){ const el = $(idEl); el.textContent = texto; el.hidden = !texto; }
+
+document.addEventListener("submit", async ev => {
+  ev.preventDefault();
+  const f = ev.target, d = Object.fromEntries(new FormData(f));
+  const btn = f.querySelector('[type="submit"]');
+
+  if (f.id === "f-carta") {
+    const nombre = d.nombre.trim();
+    if (!nombre) return mostrarError("#c-error", "Escribí el nombre de la carta.");
+    const existente = f.dataset.id ? cartas.get(f.dataset.id) : null;
+    const carta = {
+      ...(existente || {}),
+      id: existente ? existente.id : nuevoId(),
+      nombre, set: d.set.trim().toUpperCase(), rareza: d.rareza, idioma: d.idioma, estado: d.estado, notas: d.notas.trim(),
+      creada: existente?.creada || hoy(), precios: existente?.precios ? [...existente.precios] : []
+    };
+    let cant = 0, costo = 0;
+    if (!existente) {
+      cant = parseInt(d.cant || "0", 10);
+      costo = d.costo ? numero(d.costo) : 0;
+      if (!(cant >= 0)) return mostrarError("#c-error", "La cantidad tiene que ser 0 o más.");
+      if (isNaN(costo) || costo < 0) return mostrarError("#c-error", "El precio pagado no es un número válido.");
+    }
+    btn.disabled = true;
+    try {
+      await guardarCarta(carta);
+      if (cant > 0) await guardarMov({id: nuevoId(), cartaId: carta.id, tipo: "compra", cant, precio: costo, fecha: hoy(), nota: "Carga inicial", ts: Date.now()});
+    } catch (e) { btn.disabled = false; return; }
+    toast(existente ? "Cambios guardados" : `${nombre} guardada`);
+    if (existente) abrirDetalle(carta.id); else cerrar();
+  }
+
+  if (f.id === "f-mov") {
+    const tipo = f.dataset.t, id = f.dataset.id;
+    const cant = parseInt(d.cant, 10), precio = d.precio ? numero(d.precio) : 0;
+    if (!(cant > 0)) return mostrarError("#m-error", "La cantidad tiene que ser 1 o más.");
+    if (isNaN(precio) || precio < 0) return mostrarError("#m-error", "El precio no es un número válido.");
+    const stock = infoCarta(cartas.get(id)).stock;
+    if (tipo === "venta" && cant > stock) return mostrarError("#m-error", `Solo tenés ${stock} en stock.`);
+    btn.disabled = true;
+    try { await guardarMov({id: nuevoId(), cartaId: id, tipo, cant, precio, fecha: d.fecha || hoy(), nota: d.nota.trim(), ts: Date.now()}); }
+    catch (e) { btn.disabled = false; return; }
+    toast(tipo === "venta" ? `Venta registrada: ${ars(cant * precio)}` : "Compra registrada");
+    abrirDetalle(id);
+  }
+
+  if (f.id === "f-precio") {
+    const id = f.dataset.id, c = cartas.get(id);
+    const v = d.m === "usd" ? numeroDec(d.v) : numero(d.v);
+    if (isNaN(v) || v <= 0) return mostrarError("#p-error", "Escribí un precio mayor a cero.");
+    const fecha = d.f || hoy();
+    const precios = (c.precios || []).filter(p => !(p.f === fecha && p.m === d.m));
+    precios.push({f: fecha, v, m: d.m});
+    btn.disabled = true;
+    try { await guardarCarta({...c, precios}); } catch (e) { btn.disabled = false; return; }
+    ui.monedaGraf = d.m;
+    toast("Precio anotado");
+    abrirDetalle(id);
+  }
+});
+
+/* ------------------------------------------------------------------ inicio */
+function iniciar(){
+  modoPrueba = true;   // guardado local, sin cuenta
+  try { leerLocal(); estado("Guardado en este dispositivo"); }
+  catch (e) {
+    estado("Sin guardado");
+    aviso("Este navegador no deja guardar datos (¿está en modo incógnito?). Lo que cargues se pierde al cerrar.");
+  }
+  cargadoC = cargadoM = confirmado = true;
+  render();
+  if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+}
+
+/* el formulario abierto no se pisa con un render; solo el detalle se refresca */
+iniciar();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "Mis Cartas Yu-Gi-Oh!",
+  "short_name": "Mis Cartas",
+  "description": "Stock, compras, ventas y precios de tus cartas de Yu-Gi-Oh!",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#11121b",
+  "theme_color": "#5733c2",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
