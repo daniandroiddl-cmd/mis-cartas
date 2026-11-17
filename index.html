@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-juego="ygo">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -202,6 +202,24 @@ form{display:flex;flex-direction:column;gap:12px}
 .elegida{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:8px 10px}
 .elegida img{width:64px;height:90px;object-fit:cover;border-radius:5px}
 .carta-img{display:block;width:120px;max-width:40%;border-radius:8px;box-shadow:var(--shadow);float:right;margin:0 0 10px 12px}
+/* fondo y colores de cada juego */
+body::before{content:"";position:fixed;left:0;right:0;top:0;height:360px;z-index:-1;pointer-events:none;background:var(--patron) repeat, linear-gradient(180deg,var(--banda) 0%,transparent 100%);-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent);mask-image:linear-gradient(180deg,#000 55%,transparent)}
+.fab{box-shadow:0 6px 18px var(--sombra-fab,rgba(60,30,150,.35))}
+:root[data-juego="ygo"]{--accent:#5733c2;--banda:rgba(87,51,194,.38);--patron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44'%3E%3Cpath d='M22 6l6 16-6 16-6-16z' fill='%23c99a1c' fill-opacity='.22'/%3E%3Ccircle cx='0' cy='0' r='2' fill='%23c99a1c' fill-opacity='.3'/%3E%3Ccircle cx='44' cy='44' r='2' fill='%23c99a1c' fill-opacity='.3'/%3E%3C/svg%3E");--sombra-fab:rgba(60,30,150,.35)}
+@media (prefers-color-scheme: dark){:root[data-juego="ygo"]:not([data-theme="light"]){--accent:#9f86ff}}
+:root[data-theme="dark"][data-juego="ygo"]{--accent:#9f86ff}
+:root[data-juego="pkm"]{--accent:#d1361f;--banda:rgba(255,203,5,.5);--patron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36'%3E%3Ccircle cx='9' cy='9' r='4' fill='%23e3350d' fill-opacity='.18'/%3E%3Ccircle cx='27' cy='27' r='4' fill='%232a75bb' fill-opacity='.16'/%3E%3Cpath d='M27 4l2 4-4 0z' fill='%23e3350d' fill-opacity='.2'/%3E%3C/svg%3E");--sombra-fab:rgba(180,40,20,.35)}
+@media (prefers-color-scheme: dark){:root[data-juego="pkm"]:not([data-theme="light"]){--accent:#ff8a6e}}
+:root[data-theme="dark"][data-juego="pkm"]{--accent:#ff8a6e}
+:root[data-juego="mtg"]{--accent:#8a5223;--banda:rgba(138,82,35,.38);--patron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cpath d='M24 8l3 13 13 3-13 3-3 13-3-13-13-3 13-3z' fill='%23b5762f' fill-opacity='.2'/%3E%3Ccircle cx='4' cy='4' r='1.6' fill='%23b5762f' fill-opacity='.35'/%3E%3C/svg%3E");--sombra-fab:rgba(110,60,20,.35)}
+@media (prefers-color-scheme: dark){:root[data-juego="mtg"]:not([data-theme="light"]){--accent:#e3a66a}}
+:root[data-theme="dark"][data-juego="mtg"]{--accent:#e3a66a}
+:root[data-juego="op"]{--accent:#1b65a6;--banda:rgba(31,111,178,.4);--patron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='24'%3E%3Cpath d='M0 12c7.5-8 22.5-8 30 0s22.5 8 30 0' fill='none' stroke='%231f6fb2' stroke-opacity='.22' stroke-width='2.5'/%3E%3C/svg%3E");--sombra-fab:rgba(20,80,140,.35)}
+@media (prefers-color-scheme: dark){:root[data-juego="op"]:not([data-theme="light"]){--accent:#72b6ff}}
+:root[data-theme="dark"][data-juego="op"]{--accent:#72b6ff}
+:root[data-juego="dbs"]{--accent:#d9620a;--banda:rgba(240,130,20,.42);--patron:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='46' height='46'%3E%3Cpath d='M12 6l1.8 4.2 4.2 1.8-4.2 1.8L12 18l-1.8-4.2L6 12l4.2-1.8z' fill='%23e8710a' fill-opacity='.3'/%3E%3Cpath d='M34 26l1.3 3 3 1.3-3 1.3-1.3 3-1.3-3-3-1.3 3-1.3z' fill='%23f4b400' fill-opacity='.35'/%3E%3C/svg%3E");--sombra-fab:rgba(190,80,10,.35)}
+@media (prefers-color-scheme: dark){:root[data-juego="dbs"]:not([data-theme="light"]){--accent:#ffa24d}}
+:root[data-theme="dark"][data-juego="dbs"]{--accent:#ffa24d}
 /* precio de venta */
 .venta-box{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px}
 .venta-box small{display:block;color:var(--muted);font-size:12.5px}
@@ -482,7 +500,10 @@ function filtradas(idx){
 }
 const movsJuego = () => movs.filter(m => { const c = cartas.get(m.cartaId); return c && juegoDe(c) === ui.juego; });
 
+const COLOR_TEMA = {ygo: "#5733c2", pkm: "#d1361f", mtg: "#8a5223", op: "#1b65a6", dbs: "#d9620a"};
 function pintarJuegos(){
+  document.documentElement.dataset.juego = ui.juego;
+  const tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.content = COLOR_TEMA[ui.juego] || "#5733c2";
   const n = {};
   for (const c of cartas.values()) { const j = juegoDe(c); n[j] = (n[j] || 0) + 1; }
   $("#juegos").innerHTML = Object.entries(JUEGOS).map(([k, j]) =>

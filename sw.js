@@ -1,5 +1,5 @@
 // Mis Cartas: funciona sin conexión. Cambiá VERSION cuando subas una versión nueva de la app.
-const VERSION = "mis-cartas-5";
+const VERSION = "mis-cartas-6";
 // buscadores de cartas: siempre por internet, no se guardan
 const SIN_GUARDAR = ["db.ygoprodeck.com", "api.tcgdex.net", "api.scryfall.com"];
 const BASE = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png"];
