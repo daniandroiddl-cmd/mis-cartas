@@ -686,32 +686,27 @@ async function buscarYGO(q){
     return {nombre: c.name, img, info: [c.type, eds.length ? eds.length + " edición(es)" : ""].filter(Boolean).join(" · "), ediciones: eds};
   });
 }
+/* Pokémon: TCGdex. La búsqueda trae nombre + imagen; rareza, expansión y precio se piden al elegir la edición */
+const tituloPal = s => String(s || "").replace(/\b\w/g, l => l.toUpperCase());
 async function buscarPKM(q){
-  const limpio = q.replace(/["*:]/g, " ").trim();
-  let lista = [];
-  try {
-    const d = await pedirJSON("https://api.pokemontcg.io/v2/cards?pageSize=60&orderBy=-set.releaseDate&select=id,name,number,rarity,set,images,tcgplayer&q="
-      + encodeURIComponent(`name:"${limpio}*"`));
-    lista = ((d && d.data) || []).map(c => {
-      const ps = c.tcgplayer && c.tcgplayer.prices ? Object.values(c.tcgplayer.prices) : [];
-      const usd = ps.map(p => precioOk(p.market) || precioOk(p.mid)).find(Boolean) || null;
-      return {nombre: c.name, img: c.images ? c.images.small : "",
-        ed: {set: ((c.set && (c.set.ptcgoCode || c.set.id)) || "").toUpperCase() + " " + c.number, setNombre: c.set ? c.set.name : "", rareza: c.rarity || "", img: c.images ? c.images.small : "", usd}};
-    });
-  } catch (e) {
-    // plan B: TCGdex (sin rareza ni precio)
-    const d = await pedirJSON("https://api.tcgdex.net/v2/en/cards?name=" + encodeURIComponent(limpio));
-    lista = (Array.isArray(d) ? d : []).slice(0, 60).map(c => {
-      const img = c.image ? c.image + "/low.webp" : "";
-      return {nombre: c.name, img, ed: {set: String(c.id || "").toUpperCase(), setNombre: "", rareza: "", img, usd: null}};
-    });
-  }
+  const d = await pedirJSON("https://api.tcgdex.net/v2/en/cards?name=" + encodeURIComponent(q.trim()));
+  const lista = (Array.isArray(d) ? d : []).filter(c => c.image && !/\/tcgp\//.test(c.image)).reverse();   // sin las de TCG Pocket, más nuevas primero
   const grupos = new Map();
-  for (const x of lista) {
-    if (!grupos.has(x.nombre)) grupos.set(x.nombre, {nombre: x.nombre, img: x.img, ediciones: []});
-    grupos.get(x.nombre).ediciones.push(x.ed);
+  for (const c of lista) {
+    const img = c.image + "/low.webp";
+    if (!grupos.has(c.name)) grupos.set(c.name, {nombre: c.name, img, ediciones: []});
+    grupos.get(c.name).ediciones.push({id: c.id, set: String(c.id || "").toUpperCase().replace(/-(?=[^-]*$)/, " "), setNombre: "", rareza: "", img, usd: null});
   }
-  return [...grupos.values()].slice(0, 8).map(g => ({...g, info: g.ediciones.length + " edición(es)"}));
+  const qn = norm(q).trim(), punt = n => norm(n) === qn ? 0 : norm(n).startsWith(qn) ? 1 : 2;
+  return [...grupos.values()].sort((a, b) => punt(a.nombre) - punt(b.nombre) || a.nombre.length - b.nombre.length)
+    .slice(0, 8).map(g => ({...g, info: g.ediciones.length + " edición(es)"}));
+}
+async function detallePKM(e){
+  const c = await pedirJSON("https://api.tcgdex.net/v2/en/cards/" + encodeURIComponent(e.id));
+  if (!c) return e;
+  const tp = c.pricing && c.pricing.tcgplayer ? Object.values(c.pricing.tcgplayer).filter(v => v && typeof v === "object") : [];
+  const usd = tp.map(v => precioOk(v.marketPrice) || precioOk(v.midPrice)).find(Boolean) || null;
+  return {...e, setNombre: c.set ? c.set.name : "", rareza: c.rarity && c.rarity !== "None" ? tituloPal(c.rarity) : "", usd};
 }
 const RAREZA_MTG = {common: "Common", uncommon: "Uncommon", rare: "Rare", mythic: "Mythic Rare", special: "Special", bonus: "Bonus"};
 async function buscarMTG(q){
@@ -773,8 +768,14 @@ async function elegirNombre(k){
     eds.map((e, k) => `<li><button type="button" class="sug" data-accion="sugEd" data-k="${k}">${imgSug(e.img || item.img)}
       <span><b>${esc(e.set || "Sin código")}${e.rareza ? " · " + esc(e.rareza) : ""}</b><small>${esc(e.setNombre)}${e.usd ? " · " + usdTxt(e.usd) : ""}</small></span></button></li>`).join(""));
 }
-function elegirEdicion(e){
-  if (!auto || !auto.item) return;
+async function elegirEdicion(e){
+  if (!auto || !auto.item || !e) return;
+  if (auto.juego === "pkm" && e.id && !e.listo) {
+    const tok = ++auto.token;
+    sugsHTML(`<li class="sug-msg">Trayendo los datos de la carta…</li>`);
+    try { Object.assign(e, await detallePKM(e), {listo: true}); } catch (err) { e.listo = true; }
+    if (!auto || tok !== auto.token) return;
+  }
   auto.sel = {nombre: auto.item.nombre, img: e.img || auto.item.img || "", set: e.set, setNombre: e.setNombre, rareza: e.rareza, usd: e.usd};
   const f = $("#f-carta"); if (!f) return;
   f.querySelector("#c-nombre").value = auto.sel.nombre;
