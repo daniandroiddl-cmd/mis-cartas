@@ -202,6 +202,13 @@ form{display:flex;flex-direction:column;gap:12px}
 .elegida{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:8px 10px}
 .elegida img{width:64px;height:90px;object-fit:cover;border-radius:5px}
 .carta-img{display:block;width:120px;max-width:40%;border-radius:8px;box-shadow:var(--shadow);float:right;margin:0 0 10px 12px}
+/* precio de venta */
+.venta-box{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 12px}
+.venta-box small{display:block;color:var(--muted);font-size:12.5px}
+.venta-box b{font-family:var(--display);font-size:24px;font-variant-numeric:tabular-nums}
+.venta-box .btn{flex:none;white-space:nowrap}
+.ganancia{display:block;font-size:14px;font-weight:600;margin-top:2px}
+.f-precio small.tag{display:block;font-size:11.5px;color:var(--muted)}
 /* compartir */
 .compartir textarea{width:100%;min-height:220px;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:15px;line-height:1.35;font-family:var(--body);resize:vertical}
 .btn.wsp{background:#1fa855;border-color:#1fa855;color:#fff}
@@ -394,6 +401,13 @@ function etiquetaCarta(c){
   if (esSellado(c)) return [c.producto || "Producto cerrado", c.set, c.idioma !== "Inglés" ? c.idioma : null].filter(Boolean).join(" · ");
   return [c.set, c.rareza, c.idioma !== "Inglés" ? c.idioma : null].filter(Boolean).join(" · ") || "Sin edición";
 }
+function textoGanancia(venta, costo){
+  if (!venta || costo == null || !costo) return "";
+  const g = venta - costo, pc = g / costo * 100;
+  return `<span class="ganancia" style="color:${g >= 0 ? "var(--up)" : "var(--down)"}">Ganancia ${pc.toLocaleString("es-AR", {maximumFractionDigits: 0})}% · ${g >= 0 ? "+" : "−"}${ars(Math.abs(g))} c/u</span>`;
+}
+const campoVenta = (pre, c) => `<div class="campo"><label for="${pre}-venta">Tu precio de venta c/u ($)</label><input id="${pre}-venta" name="venta" inputmode="decimal" value="${c?.venta ? Math.round(c.venta) : ""}" placeholder="Opcional: a cuánto la vendés vos"></div>`;
+const leerVenta = v => { const n = v ? numero(v) : NaN; return n > 0 ? Math.round(n) : null; };
 function chipVar(v){
   if (v == null) return "";
   const cl = v > 0.05 ? "up" : v < -0.05 ? "down" : "igual";
@@ -498,7 +512,7 @@ function pintarLista(){
     return;
   }
   lista.innerHTML = filas.map(({c, i}) => {
-    const precio = i.ars != null ? `${ars(i.ars)}<br>${chipVar(i.arsVar)}` : i.usd != null ? `${usd(i.usd)}<br>${chipVar(i.usdVar)}` : `<span class="sin">sin precio</span>`;
+    const precio = c.venta ? `${ars(c.venta)}<small class="tag">tu precio</small>` : i.ars != null ? `${ars(i.ars)}<br>${chipVar(i.arsVar)}` : i.usd != null ? `${usd(i.usd)}<br>${chipVar(i.usdVar)}` : `<span class="sin">sin precio</span>`;
     return `<button class="fila" data-accion="detalle" data-id="${esc(c.id)}">
       <div><div class="f-nombre">${esSellado(c) ? `<span class="rar" style="background:var(--accent);transform:none;border-radius:2px"></span>` : ""}${c.rareza ? `<span class="rar" style="background:${COLOR_RAREZA[c.rareza] || "var(--muted)"}"></span>` : ""}${esc(c.nombre)}</div>
       <div class="f-sub">${esc(etiquetaCarta(c))}${c.notas ? " · " + esc(c.notas) : ""}</div></div>
@@ -669,6 +683,7 @@ function abrirFormCarta(id){
         <div class="campo"><label for="c-costo">Pagaste c/u ($)</label><input id="c-costo" name="costo" inputmode="decimal" placeholder="0"></div>
       </div>`}
       <label class="check" id="c-precio-hoy" hidden style="margin:0"><input type="checkbox" name="precioHoy" disabled checked><span></span></label>
+      ${campoVenta("c", c)}
       <div class="campo"><label for="c-notas">Notas</label><input id="c-notas" name="notas" value="${esc(c?.notas)}" placeholder="Ej: carpeta 2, para cambio, firmada"></div>
       <p class="error" id="c-error" hidden></p>
       <button class="btn pri" type="submit">${c ? "Guardar cambios" : "Guardar carta"}</button>
@@ -692,6 +707,7 @@ function abrirFormSellado(id){
         <div class="campo"><label for="s-cant">Cuántas compraste</label><input id="s-cant" name="cant" type="number" inputmode="numeric" min="0" step="1" value="1"></div>
         <div class="campo"><label for="s-costo">Pagaste c/u ($)</label><input id="s-costo" name="costo" inputmode="decimal" placeholder="0"></div>
       </div>`}
+      ${campoVenta("s", c)}
       <div class="campo"><label for="s-notas">Notas</label><input id="s-notas" name="notas" value="${esc(c?.notas)}" placeholder="Ej: a quién se la compraste, 24 sobres por caja"></div>
       <p class="error" id="s-error" hidden></p>
       <button class="btn pri" type="submit">${c ? "Guardar cambios" : "Guardar"}</button>
@@ -858,6 +874,11 @@ function abrirDetalle(id, refresco){
       <div class="dato"><small>Costo promedio</small><b>${i.costo != null ? ars(i.costo) : "—"}</b></div>
       <div class="dato"><small>Vendidas</small><b>${i.vendU}</b></div>
     </div>
+    <div class="panel venta-box">
+      <div><small>Tu precio de venta</small><b>${c.venta ? ars(c.venta) : "Sin poner"}</b>
+        ${c.venta ? (i.costo ? textoGanancia(c.venta, i.costo) : `<span class="ganancia" style="color:var(--muted)">Cargá una compra para ver la ganancia</span>`) : (i.ars ? `<span class="ganancia" style="color:var(--muted)">En MercadoLibre está a ${ars(i.ars)}</span>` : "")}</div>
+      <button class="btn chico ${c.venta ? "" : "pri"}" data-accion="ponerVenta" data-id="${esc(c.id)}">${c.venta ? "Cambiar" : "Poner precio"}</button>
+    </div>
     <div class="panel">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap">
         <strong>Precio en internet</strong>
@@ -915,7 +936,7 @@ function grafico(ps, moneda){
 function abrirFormMov(id, tipo){
   const c = cartas.get(id); if (!c) return;
   const i = infoCarta(c);
-  const sugerido = tipo === "venta" ? (i.ars || "") : "";
+  const sugerido = tipo === "venta" ? (c.venta || i.ars || "") : "";
   abrir(cabecera(tipo === "venta" ? "Registrar venta" : "Registrar compra") + `
     <p class="f-sub" style="margin:-6px 0 12px"><strong style="color:var(--ink)">${esc(c.nombre)}</strong> · ${esc(etiquetaCarta(c))} · stock ${i.stock}</p>
     <form id="f-mov" data-id="${esc(id)}" data-t="${tipo}">
@@ -927,6 +948,21 @@ function abrirFormMov(id, tipo){
       <div class="campo"><label for="m-nota">Nota</label><input id="m-nota" name="nota" placeholder="${tipo === "venta" ? "Ej: a quién, por dónde" : "Ej: a quién se la compraste"}"></div>
       <p class="error" id="m-error" hidden></p>
       <button class="btn ${tipo === "venta" ? "venta" : "pri"}" type="submit">${tipo === "venta" ? "Registrar venta" : "Registrar compra"}</button>
+    </form>`, {tipo: "form"});
+}
+
+function abrirFormVenta(id){
+  const c = cartas.get(id); if (!c) return;
+  const i = infoCarta(c);
+  abrir(cabecera("Tu precio de venta") + `
+    <p class="f-sub" style="margin:-6px 0 12px"><strong style="color:var(--ink)">${esc(c.nombre)}</strong> · ${esc(etiquetaCarta(c))}</p>
+    <form id="f-venta" data-id="${esc(id)}">
+      <div class="campo"><label for="v-valor">Precio de venta c/u ($)</label><input id="v-valor" name="venta" inputmode="decimal" value="${c.venta ? Math.round(c.venta) : ""}" placeholder="${i.ars ? Math.round(i.ars) : "0"}" autofocus></div>
+      <p class="ayuda">Costo promedio: <strong>${i.costo != null ? ars(i.costo) : "sin compras cargadas"}</strong>${i.ars ? ` · En MercadoLibre: <strong>${ars(i.ars)}</strong>` : ""}</p>
+      <p id="v-gan" style="margin:0">${textoGanancia(c.venta, i.costo)}</p>
+      <p class="error" id="v-error" hidden></p>
+      <button class="btn pri" type="submit">Guardar precio</button>
+      ${c.venta ? `<button class="btn" type="button" data-accion="sacarVenta" data-id="${esc(c.id)}">Sacar el precio</button>` : ""}
     </form>`, {tipo: "form"});
 }
 
@@ -978,7 +1014,8 @@ const CAMPOS = [
   ["notas", "Notas"],
   ["ars", "Precio en internet ($)"],
   ["usd", "Precio en internet (US$)"],
-  ["fecha", "Fecha de compra"]
+  ["fecha", "Fecha de compra"],
+  ["venta", "Tu precio de venta ($)"]
 ];
 
 let promXLSX = null;
@@ -1111,7 +1148,8 @@ function adivinarCampo(titulo){
   if (hay("set", "sets", "codigo*", "cod", "code", "edicion*", "expansion*", "coleccion*")) return "set";
   if (hay("nota*", "obs*", "coment*", "detalle*", "ubicacion*", "carpeta*")) return "notas";
   if (hay("compr*", "pag*", "costo*", "cost", "invert*")) return "costo";
-  if (hay("ml", "mercado*", "valor*", "venta*", "vale", "actual", "vender*", "publica*")) return "ars";
+  if (hay("venta*", "vender*", "vendo")) return "venta";
+  if (hay("ml", "mercado*", "valor*", "vale", "actual", "publica*")) return "ars";
   if (hay("precio*", "price", "$")) return "costo";
   if (hay("nombre*", "carta*", "name", "card*", "descripcion*")) return "nombre";
   return "";
@@ -1251,6 +1289,8 @@ function armarPlan(){
     const fecha = col("fecha") >= 0 ? fechaDe(raw("fecha")) || fechaDe(txt("fecha")) || fechaHoy : fechaHoy;
     const precios = [];
     if (col("ars") >= 0) { const n = aNumero(raw("ars"), false); if (n > 0) precios.push({f: fechaHoy, v: n, m: "ars"}); }
+    let venta = null;
+    if (col("venta") >= 0) { const n = aNumero(raw("venta"), false); if (n > 0) venta = Math.round(n); }
     if (col("usd") >= 0) { const n = aNumero(raw("usd"), true); if (n > 0) precios.push({f: fechaHoy, v: Math.round(n * 100) / 100, m: "usd"}); }
 
     const k = claveCarta({juego: ui.juego, nombre, set, rareza, idioma});
@@ -1270,6 +1310,7 @@ function armarPlan(){
       unidades += cant;
       if (ya) tocadas.get(carta.id)._mov = true;
     }
+    if (venta && carta.venta !== venta) { carta.venta = venta; if (ya) carta._cambio = true; }
     filas.push({carta, cant, costo, precios, ya});
   }
   const aGuardar = [...nuevas.values(), ...[...tocadas.values()].filter(c => c._cambio)].map(c => { const o = {...c}; delete o._cambio; delete o._mov; return o; });
@@ -1439,7 +1480,7 @@ function limpiarCopia(d){
   const cs = new Map();
   for (const c of d.cartas) {
     if (!c || typeof c.id !== "string" || !c.id || !txt(c.nombre).trim()) continue;
-    cs.set(c.id, {id: c.id, ...(c.clase === "sellado" ? {clase: "sellado", producto: txt(c.producto)} : {}), juego: JUEGOS[c.juego] ? c.juego : "ygo", img: /^https:\/\//.test(txt(c.img)) ? c.img : "", nombre: c.nombre, set: txt(c.set), rareza: txt(c.rareza), idioma: txt(c.idioma) || "Inglés",
+    cs.set(c.id, {id: c.id, ...(num(c.venta) && c.venta > 0 ? {venta: c.venta} : {}), ...(c.clase === "sellado" ? {clase: "sellado", producto: txt(c.producto)} : {}), juego: JUEGOS[c.juego] ? c.juego : "ygo", img: /^https:\/\//.test(txt(c.img)) ? c.img : "", nombre: c.nombre, set: txt(c.set), rareza: txt(c.rareza), idioma: txt(c.idioma) || "Inglés",
       estado: txt(c.estado) || "Near Mint", notas: txt(c.notas), creada: esFecha(c.creada) ? c.creada : hoy(),
       precios: (Array.isArray(c.precios) ? c.precios : []).filter(p => p && esFecha(p.f) && num(p.v) && (p.m === "usd" || p.m === "ars")).map(p => ({f: p.f, v: p.v, m: p.m}))});
   }
@@ -1466,7 +1507,8 @@ function guardarComp(){ try { localStorage.setItem(CLAVE_COMP, JSON.stringify(co
 const tituloComp = () => comp.titulos[ui.juego] || `Vendo cartas de ${J().nombre}`;
 const hayFiltro = () => !!(norm(ui.q).trim() || ui.rareza);
 
-function precioVenta(i){
+function precioVenta(c, i){
+  if (comp.moneda === "venta") return c.venta ? ars(c.venta) : null;
   const base = comp.moneda === "usd" ? i.usd : comp.moneda === "ars" ? i.ars : null;
   if (base == null) return null;
   const v = base * (1 + (comp.ajuste || 0) / 100);
@@ -1481,11 +1523,11 @@ function textoCompartir(){
   const linea = ({c, i}) => {
     if (esSellado(c)) {
       const ed = [c.producto, comp.conEd ? c.set : "", c.idioma && c.idioma !== "Inglés" ? c.idioma : ""].filter(Boolean).join(" · ");
-      const p = comp.moneda === "no" ? "" : (precioVenta(i) ? `*${precioVenta(i)}*` : "consultar");
+      const p = comp.moneda === "no" ? "" : (precioVenta(c, i) ? `*${precioVenta(c, i)}*` : "consultar");
       return "• " + c.nombre + (ed ? ` (${ed})` : "") + (comp.conCant && i.stock > 1 ? ` x${i.stock}` : "") + (p ? " — " + p : "");
     }
     const ed = comp.conEd ? [c.set, c.rareza, c.idioma && c.idioma !== "Inglés" ? c.idioma : "", c.estado && c.estado !== "Near Mint" ? c.estado : ""].filter(Boolean).join(" · ") : "";
-    const p = comp.moneda === "no" ? "" : (precioVenta(i) ? `*${precioVenta(i)}*` : "consultar");
+    const p = comp.moneda === "no" ? "" : (precioVenta(c, i) ? `*${precioVenta(c, i)}*` : "consultar");
     return "• " + c.nombre + (ed ? ` (${ed})` : "") + (comp.conCant && i.stock > 1 ? ` x${i.stock}` : "") + (p ? " — " + p : "");
   };
   const lineas = cajas.length && sueltas.length
@@ -1500,12 +1542,12 @@ function abrirCompartir(){
   abrir(cabecera("Lista para compartir") + `<form id="f-comp" class="compartir">
     <p class="ayuda" style="margin-top:-6px">Arma la lista de tus cartas (y cajas cerradas) de ${esc(J().nombre)} con stock, lista para mandar por WhatsApp o pegar en grupos de Facebook.</p>
     ${hayFiltro() ? `<div class="campo"><label>Qué cartas</label>${seg("cuales", comp.cuales, [["todas", "Todas con stock"], ["vista", "Solo las filtradas"]])}</div>` : ""}
-    <div class="campo"><label>Precio</label>${seg("moneda", comp.moneda, [["ars", "Pesos"], ["usd", "Dólares"], ["no", "Sin precio"]])}</div>
+    <div class="campo"><label>Precio</label>${seg("moneda", comp.moneda, [["venta", "Mi precio"], ["ars", "Internet $"], ["usd", "Internet US$"], ["no", "Sin precio"]])}</div>
     <div class="dos">
       <div class="campo"><label for="comp-ajuste">Ajuste de precio (%)</label><input id="comp-ajuste" name="ajuste" type="number" inputmode="numeric" step="1" value="${comp.ajuste || 0}"></div>
       <div class="campo"><label for="comp-titulo">Título</label><input id="comp-titulo" name="titulo" value="${esc(tituloComp())}"></div>
     </div>
-    <p class="ayuda" style="margin-top:-6px">Usa el último precio que anotaste de cada carta. Con el ajuste lo subís o bajás (ej: -10 = 10% menos).</p>
+    <p class="ayuda" style="margin-top:-6px">“Mi precio” usa tu precio de venta de cada carta. “Internet” usa el último precio que anotaste de MercadoLibre o TCGplayer, y con el ajuste lo subís o bajás (ej: -10 = 10% menos).</p>
     <label class="check" style="margin:0"><input type="checkbox" name="conEd" ${comp.conEd ? "checked" : ""}><span>Mostrar edición y rareza</span></label>
     <label class="check" style="margin:0"><input type="checkbox" name="conCant" ${comp.conCant ? "checked" : ""}><span>Mostrar cuántas tengo</span></label>
     <div class="campo"><label for="comp-texto">Así queda (lo podés editar antes de mandarlo)</label><textarea id="comp-texto"></textarea></div>
@@ -1557,6 +1599,8 @@ document.addEventListener("click", async ev => {
     case "editar": esSellado(cartas.get(id)) ? abrirFormSellado(id) : abrirFormCarta(id); break;
     case "mov": abrirFormMov(id, t.dataset.t); break;
     case "precio": abrirFormPrecio(id); break;
+    case "ponerVenta": abrirFormVenta(id); break;
+    case "sacarVenta": { const c = cartas.get(id); if (c) { const n = {...c}; delete n.venta; await guardarCarta(n); toast("Precio de venta sacado"); abrirDetalle(id); } break; }
     case "soloStock": ui.soloStock = !ui.soloStock; vistaStock(); break;
     case "rareza": ui.rareza = ui.rareza === t.dataset.r ? null : t.dataset.r; vistaStock(); break;
     case "tipoMov": ui.tipoMov = t.dataset.t; vistaMovs(); break;
@@ -1593,6 +1637,7 @@ document.addEventListener("click", async ev => {
 
 document.addEventListener("input", ev => {
   if (ev.target.id === "q") { ui.q = ev.target.value; pintarLista(); }
+  if (ev.target.id === "v-valor") { const c = cartas.get(ev.target.form.dataset.id); $("#v-gan").innerHTML = c ? textoGanancia(leerVenta(ev.target.value), infoCarta(c).costo) : ""; }
   if (ev.target.id === "c-nombre" && auto) {
     if (auto.sel && ev.target.value !== auto.sel.nombre) { auto.sel = null; auto.item = null; $("#c-img").value = ""; pintarElegida(); }
     programarBusqueda(ev.target.value);
@@ -1644,7 +1689,7 @@ document.addEventListener("submit", async ev => {
       ...(existente || {}),
       id: existente ? existente.id : nuevoId(), clase: "sellado",
       juego: existente ? juegoDe(existente) : (JUEGOS[f.dataset.juego] ? f.dataset.juego : ui.juego),
-      producto: d.producto, nombre, set: d.set.trim().toUpperCase(), rareza: "", idioma: d.idioma, estado: "Near Mint", notas: d.notas.trim(),
+      producto: d.producto, venta: leerVenta(d.venta), nombre, set: d.set.trim().toUpperCase(), rareza: "", idioma: d.idioma, estado: "Near Mint", notas: d.notas.trim(),
       creada: existente?.creada || hoy(), precios: existente?.precios ? [...existente.precios] : []
     };
     let cant = 0, costo = 0;
@@ -1671,7 +1716,7 @@ document.addEventListener("submit", async ev => {
       ...(existente || {}),
       id: existente ? existente.id : nuevoId(),
       juego: existente ? juegoDe(existente) : (JUEGOS[f.dataset.juego] ? f.dataset.juego : ui.juego),
-      nombre, set: d.set.trim().toUpperCase(), rareza: d.rareza, idioma: d.idioma, estado: d.estado, notas: d.notas.trim(),
+      nombre, set: d.set.trim().toUpperCase(), rareza: d.rareza, idioma: d.idioma, estado: d.estado, notas: d.notas.trim(), venta: leerVenta(d.venta),
       img: /^https:\/\//.test(d.img || "") ? d.img : "",
       creada: existente?.creada || hoy(), precios: existente?.precios ? [...existente.precios] : []
     };
@@ -1707,6 +1752,16 @@ document.addEventListener("submit", async ev => {
     catch (e) { btn.disabled = false; return; }
     toast(tipo === "venta" ? `Venta registrada: ${ars(cant * precio)}` : "Compra registrada");
     abrirDetalle(id);
+  }
+
+  if (f.id === "f-venta") {
+    const c = cartas.get(f.dataset.id); if (!c) return;
+    const v = leerVenta(d.venta);
+    if (!v) return mostrarError("#v-error", "Escribí un precio mayor a cero.");
+    btn.disabled = true;
+    try { await guardarCarta({...c, venta: v}); } catch (e) { btn.disabled = false; return; }
+    toast("Precio de venta guardado");
+    abrirDetalle(c.id);
   }
 
   if (f.id === "f-precio") {
