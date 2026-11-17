@@ -1515,7 +1515,7 @@ function limpiarCopia(d){
     if (!m || typeof m.id !== "string" || !cs.has(m.cartaId) || !(m.tipo === "compra" || m.tipo === "venta") || !num(m.cant) || !num(m.precio) || !esFecha(m.fecha)) continue;
     ms.push({id: m.id, cartaId: m.cartaId, tipo: m.tipo, cant: m.cant, precio: m.precio, fecha: m.fecha, nota: txt(m.nota), ts: typeof m.ts === "number" ? m.ts : 0});
   }
-  return {cartas: cs, movs: ms, fecha: esFecha(d.fecha) ? d.fecha : null, lic: codigoValido(d.licencia) ? d.licencia : null};
+  return {cartas: cs, movs: ms, fecha: esFecha(d.fecha) ? d.fecha : null, lic: codigoValido(d.licencia, equipo) ? d.licencia : null};
 }
 async function restaurarCopia(file){
   let d = null;
@@ -1615,15 +1615,33 @@ function cyrb53(str, seed){
   return 4294967296 * (2097151 & h2) + (h1 >>> 0);
 }
 const limpiarCodigo = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-function codigoValido(s){
-  const c = limpiarCodigo(s);
-  if (c.length !== 12 || [...c].some(ch => !ABC.includes(ch))) return false;
-  let h = cyrb53(SAL + c.slice(0, 8), 7), chk = "";
+const soloABC = (c, n) => c.length === n && [...c].every(ch => ABC.includes(ch));
+/* el código se calcula con el número del celular: solo sirve en ese celular */
+function checkDe(p, eq){
+  let h = cyrb53(SAL + p + eq, 7), chk = "";
   for (let k = 0; k < 4; k++) { chk += ABC[h % 32]; h = Math.floor(h / 32); }
-  return chk === c.slice(8);
+  return chk;
 }
+function codigoValido(s, eq){
+  const c = limpiarCodigo(s), e = limpiarCodigo(eq);
+  if (!soloABC(c, 12) || !soloABC(e, 8)) return false;
+  return checkDe(c.slice(0, 8), e) === c.slice(8);
+}
+const lindoEquipo = e => { const c = limpiarCodigo(e); return c.slice(0, 4) + "-" + c.slice(4, 8); };
 const lindoCodigo = s => { const c = limpiarCodigo(s); return c.slice(0, 4) + "-" + c.slice(4, 8) + "-" + c.slice(8, 12); };
-let licencia = (() => { try { const v = localStorage.getItem(CLAVE_LIC); return codigoValido(v) ? lindoCodigo(v) : null; } catch (e) { return null; } })();
+const CLAVE_EQUIPO = "mis-cartas-equipo";
+const equipo = (() => {
+  try {
+    let v = limpiarCodigo(localStorage.getItem(CLAVE_EQUIPO));
+    if (!soloABC(v, 8)) {
+      const r = new Uint32Array(8); crypto.getRandomValues(r);
+      v = [...r].map(n => ABC[n % 32]).join("");
+      localStorage.setItem(CLAVE_EQUIPO, v);
+    }
+    return v;
+  } catch (e) { return ""; }
+})();
+let licencia = (() => { try { const v = localStorage.getItem(CLAVE_LIC); return codigoValido(v, equipo) ? lindoCodigo(v) : null; } catch (e) { return null; } })();
 const esCompleta = () => !!licencia;
 function guardarLicencia(cod){
   licencia = lindoCodigo(cod);
@@ -1647,12 +1665,14 @@ function pintarLicencia(){
 function abrirActivar(motivo){
   if (esCompleta()) {
     abrir(cabecera("Versión completa ✓") + `<p style="margin-top:0">Tenés la versión completa activada en este dispositivo: cartas sin límite, todos los juegos y la lista para compartir.</p>
-      <p class="ayuda">Tu código: <strong class="num">${esc(licencia)}</strong>. Guardalo: si cambiás de celular, con la <strong>Copia</strong> de seguridad o con este código la volvés a activar.</p>`, {tipo: "activar"});
+      <p class="ayuda">Tu código: <strong class="num">${esc(licencia)}</strong> · número de este celular: <strong class="num">${esc(lindoEquipo(equipo))}</strong>.</p>
+      <p class="ayuda">El código funciona solo en este celular. Si cambiás de celular, pasá tus cartas con la <strong>Copia</strong> y pedile un código nuevo a quien te vendió la app.</p>`, {tipo: "activar"});
     return;
   }
   const porQue = {limite: `Llegaste a las ${LIMITE_GRATIS} cartas de la versión gratis.`, juego: "La versión gratis es para un solo juego.",
     compartir: "La lista para compartir es de la versión completa.", importar: `Con esa planilla pasarías las ${LIMITE_GRATIS} cartas de la versión gratis.`}[motivo] || "";
-  const msj = encodeURIComponent("Hola! Quiero la versión completa de Mis Cartas");
+  const nro = lindoEquipo(equipo);
+  const msj = encodeURIComponent(`Hola! Quiero la versión completa de Mis Cartas. El número de mi celular es ${nro}`);
   abrir(cabecera("Versión completa") + `
     ${porQue ? `<div class="aviso" style="margin-top:0">${esc(porQue)} Tus cartas no se pierden: las seguís viendo, vendiendo y comprando.</div>` : ""}
     <div class="panel" style="margin-bottom:12px">
@@ -1663,7 +1683,15 @@ function abrirActivar(motivo){
       </ul>
       <p style="margin:12px 0 0;font-size:18px"><strong>${esc(PRECIO_TXT)}</strong> <span class="ayuda">· pagás una sola vez</span></p>
     </div>
-    ${CONTACTO_WSP ? `<a class="btn wsp" style="width:100%;margin-bottom:14px" href="https://wa.me/${esc(CONTACTO_WSP)}?text=${msj}" target="_blank" rel="noopener">Comprar por WhatsApp</a>` : `<p class="ayuda">Para comprarla, pedile el código a quien te pasó la app.</p>`}
+    <div class="panel" style="margin-bottom:12px;text-align:center">
+      <small class="ayuda">Número de este celular</small>
+      <b style="display:block;font-family:var(--display);font-size:32px;letter-spacing:2px;margin:2px 0 8px" class="num">${esc(nro)}</b>
+      <p class="ayuda" style="margin:0 0 10px">Para comprarla, mandale este número a quien te pasó la app: te va a dar un código que funciona solo en este celular.</p>
+      <div class="fila-btns">
+        ${CONTACTO_WSP ? `<a class="btn wsp" href="https://wa.me/${esc(CONTACTO_WSP)}?text=${msj}" target="_blank" rel="noopener">Comprar por WhatsApp</a>` : ""}
+        <button class="btn" type="button" data-accion="copiarEquipo">Copiar número</button>
+      </div>
+    </div>
     <form id="f-activar">
       <div class="campo"><label for="a-codigo">¿Ya tenés tu código?</label>
         <input id="a-codigo" name="codigo" placeholder="XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" style="text-transform:uppercase;letter-spacing:1px" ${motivo ? "" : "autofocus"}></div>
@@ -1680,6 +1708,7 @@ document.addEventListener("click", async ev => {
   const a = t.dataset.accion, id = t.dataset.id;
   switch (a) {
     case "activar": abrirActivar(t.dataset.motivo); break;
+    case "copiarEquipo": { const nro = lindoEquipo(equipo); let ok = false; try { await navigator.clipboard.writeText(nro); ok = true; } catch (e) {} toast(ok ? "Número copiado: " + nro : "Tu número es " + nro); break; }
     case "nueva": if (llegoAlLimite()) { abrirActivar("limite"); break; } ui.clase === "sellado" ? abrirFormSellado() : abrirFormCarta(); break;
     case "juego": cambiarJuego(t.dataset.j); break;
     case "sugNombre": elegirNombre(+t.dataset.k); break;
@@ -1854,7 +1883,7 @@ document.addEventListener("submit", async ev => {
   }
 
   if (f.id === "f-activar") {
-    if (!codigoValido(d.codigo)) return mostrarError("#a-error", "Ese código no es válido. Revisá que esté bien escrito (son 12 letras y números).");
+    if (!codigoValido(d.codigo, equipo)) return mostrarError("#a-error", "Ese código no es válido para este celular. Revisá que esté bien escrito y que sea el que te dieron para el número " + lindoEquipo(equipo) + ".");
     guardarLicencia(d.codigo);
     try { persistir(); } catch (e) {}
     cerrar(); render();
