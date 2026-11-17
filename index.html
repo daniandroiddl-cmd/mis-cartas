@@ -289,6 +289,8 @@ Object.assign(COLOR_RAREZA, {"Uncommon":"#5aa06b","Rare Holo":"#3f86d6","Double 
   "Hyper Rare":"#c99a1c","ACE SPEC Rare":"#e0453a","Shiny Rare":"#9fb6c6","Promo":"#4fb3a9","Mythic Rare":"#e0453a","Special":"#7a5cf0","Bonus":"#4fb3a9",
   "Leader":"#e0453a","Treasure Rare":"#c99a1c","Special Rare":"#e85d9b","Alternate Art":"#7a5cf0"});
 const juegoDe = c => (c && JUEGOS[c.juego]) ? c.juego : "ygo";
+const esSellado = c => !!c && c.clase === "sellado";
+const PRODUCTOS = ["Caja (Booster Box)","Sobre","Display","Structure / Starter Deck","Lata (Tin)","Caja de colección","Bundle / ETB","Otro"];
 const J = () => JUEGOS[ui.juego];
 const cartasJuego = () => [...cartas.values()].filter(c => juegoDe(c) === ui.juego);
 
@@ -302,7 +304,7 @@ let cargadoC = false, cargadoM = false, confirmado = false;
 let db = null, colCartas = null, colMovs = null, modoPrueba = false;
 const CLAVE_JUEGO = "mis-cartas-juego";
 const juegoGuardado = (() => { try { return localStorage.getItem(CLAVE_JUEGO); } catch (e) { return null; } })();
-const ui = {tab: "stock", q: "", rareza: null, soloStock: true, modal: null, tipoMov: "todos", monedaGraf: "usd", juego: JUEGOS[juegoGuardado] ? juegoGuardado : "ygo"};
+const ui = {tab: "stock", q: "", rareza: null, soloStock: true, modal: null, tipoMov: "todos", monedaGraf: "usd", clase: "cartas", juego: JUEGOS[juegoGuardado] ? juegoGuardado : "ygo"};
 
 /* ---------------------------------------------------------------- guardado */
 let contadorLocal = 0;
@@ -389,6 +391,7 @@ function infoCarta(c, idx){
   return out;
 }
 function etiquetaCarta(c){
+  if (esSellado(c)) return [c.producto || "Producto cerrado", c.set, c.idioma !== "Inglés" ? c.idioma : null].filter(Boolean).join(" · ");
   return [c.set, c.rareza, c.idioma !== "Inglés" ? c.idioma : null].filter(Boolean).join(" · ") || "Sin edición";
 }
 function chipVar(v){
@@ -408,6 +411,7 @@ function render(){
   if (importando) return;
   document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-current", b.dataset.tab === ui.tab ? "page" : "false"));
   pintarJuegos();
+  $("#fab").textContent = ui.clase === "sellado" ? "+ Caja" : "+ Carta";
   if (!cargadoC || !cargadoM) { vista.innerHTML = `<div class="vacio"><b>Cargando tus cartas…</b>Un segundo.</div>`; return; }
   ({stock: vistaStock, movs: vistaMovs, precios: vistaPrecios, ganancias: vistaGanancias})[ui.tab]();
   if (ui.modal && ui.modal.tipo === "detalle") abrirDetalle(ui.modal.id, true);
@@ -416,7 +420,8 @@ function render(){
 function vistaStock(){
   const idx = indiceMovs();
   let unidades = 0, distintas = 0, invertido = 0, valorUsd = 0, valorArs = 0;
-  const delJuego = cartasJuego();
+  const sell = ui.clase === "sellado";
+  const delJuego = cartasJuego().filter(c => esSellado(c) === sell);
   for (const c of delJuego) {
     const i = infoCarta(c, idx);
     if (i.stock > 0) {
@@ -431,15 +436,19 @@ function vistaStock(){
   if (ui.rareza && !rarezas.includes(ui.rareza)) ui.rareza = null;
   vista.innerHTML = `
     <section class="tiles" aria-label="Resumen">
-      <div class="tile"><small>Cartas en stock</small><b>${distintas}</b></div>
+      <div class="tile"><small>${sell ? "Productos en stock" : "Cartas en stock"}</small><b>${distintas}</b></div>
       <div class="tile"><small>Unidades</small><b>${unidades}</b></div>
       <div class="tile"><small>Invertido en stock</small><b>${ars(invertido)}</b></div>
       <div class="tile gold"><small>Valor de lo que tiene precio anotado</small><b>${valorArs ? ars(valorArs) : valorUsd ? usd(valorUsd) : "—"}</b></div>
     </section>
+    <div class="seg" role="radiogroup" aria-label="Qué ver" style="margin:0 0 10px">
+      <input type="radio" name="clase" id="clase-cartas" value="cartas" ${sell ? "" : "checked"}><label for="clase-cartas">Cartas</label>
+      <input type="radio" name="clase" id="clase-sellado" value="sellado" ${sell ? "checked" : ""}><label for="clase-sellado">Cajas y sobres</label>
+    </div>
     <div class="acciones-stock"><button class="btn wsp" data-accion="compartir">Compartir lista por WhatsApp</button></div>
     <div class="buscador">
       <label for="q" class="lupa" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></label>
-      <input id="q" type="search" placeholder="Buscar por nombre, set o nota" value="${esc(ui.q)}" autocomplete="off" aria-label="Buscar carta">
+      <input id="q" type="search" placeholder="${sell ? "Buscar caja, sobre o expansión" : "Buscar por nombre, set o nota"}" value="${esc(ui.q)}" autocomplete="off" aria-label="Buscar carta">
     </div>
     <div class="chips" role="group" aria-label="Filtros">
       <button class="chip" data-accion="soloStock" aria-pressed="${ui.soloStock}">Solo con stock</button>
@@ -452,9 +461,9 @@ function vistaStock(){
 /* las cartas que se ven en Stock con el juego, la búsqueda y los filtros de ahora */
 function filtradas(idx){
   const q = norm(ui.q).trim();
-  return cartasJuego().map(c => ({c, i: infoCarta(c, idx)}))
+  return cartasJuego().filter(c => esSellado(c) === (ui.clase === "sellado")).map(c => ({c, i: infoCarta(c, idx)}))
     .filter(({c, i}) => (!ui.soloStock || i.stock > 0) && (!ui.rareza || c.rareza === ui.rareza)
-      && (!q || norm(c.nombre + " " + (c.set || "") + " " + (c.notas || "") + " " + (c.rareza || "")).includes(q)))
+      && (!q || norm(c.nombre + " " + (c.set || "") + " " + (c.notas || "") + " " + (c.rareza || "") + " " + (c.producto || "")).includes(q)))
     .sort((a, b) => a.c.nombre.localeCompare(b.c.nombre, "es"));
 }
 const movsJuego = () => movs.filter(m => { const c = cartas.get(m.cartaId); return c && juegoDe(c) === ui.juego; });
@@ -475,19 +484,23 @@ function cambiarJuego(k){
 
 function pintarLista(){
   const lista = $("#lista"); if (!lista) return;
-  if (!cartasJuego().length) {
+  if (ui.clase === "sellado" && !cartasJuego().some(esSellado)) {
+    lista.innerHTML = `<div class="vacio"><b>Todavía no cargaste cajas ni sobres de ${esc(J().nombre)}</b>Tocá <strong>+ Caja</strong> abajo a la derecha para cargar una caja, sobre, lata o mazo cerrado.</div>`;
+    return;
+  }
+  if (ui.clase !== "sellado" && !cartasJuego().some(c => !esSellado(c))) {
     lista.innerHTML = `<div class="vacio"><b>Todavía no cargaste cartas de ${esc(J().nombre)}</b>Tocá <strong>+ Carta</strong> abajo a la derecha para cargar la primera, o traelas todas juntas desde una planilla.<div style="margin-top:14px"><button class="btn pri" data-accion="importar">Importar desde Excel</button></div></div>`;
     return;
   }
   const filas = filtradas(indiceMovs());
   if (!filas.length) {
-    lista.innerHTML = `<div class="vacio"><b>No hay cartas con ese filtro</b>${ui.soloStock ? "Probá sacando “Solo con stock”." : "Probá con otra palabra."}</div>`;
+    lista.innerHTML = `<div class="vacio"><b>No hay ${ui.clase === "sellado" ? "productos" : "cartas"} con ese filtro</b>${ui.soloStock ? "Probá sacando “Solo con stock”." : "Probá con otra palabra."}</div>`;
     return;
   }
   lista.innerHTML = filas.map(({c, i}) => {
     const precio = i.ars != null ? `${ars(i.ars)}<br>${chipVar(i.arsVar)}` : i.usd != null ? `${usd(i.usd)}<br>${chipVar(i.usdVar)}` : `<span class="sin">sin precio</span>`;
     return `<button class="fila" data-accion="detalle" data-id="${esc(c.id)}">
-      <div><div class="f-nombre">${c.rareza ? `<span class="rar" style="background:${COLOR_RAREZA[c.rareza] || "var(--muted)"}"></span>` : ""}${esc(c.nombre)}</div>
+      <div><div class="f-nombre">${esSellado(c) ? `<span class="rar" style="background:var(--accent);transform:none;border-radius:2px"></span>` : ""}${c.rareza ? `<span class="rar" style="background:${COLOR_RAREZA[c.rareza] || "var(--muted)"}"></span>` : ""}${esc(c.nombre)}</div>
       <div class="f-sub">${esc(etiquetaCarta(c))}${c.notas ? " · " + esc(c.notas) : ""}</div></div>
       <div class="f-precio">${precio}</div>
       <div class="f-stock ${i.stock > 0 ? "" : "cero"}"><b class="num">${i.stock}</b><small>stock</small></div>
@@ -664,6 +677,28 @@ function abrirFormCarta(id){
   pintarElegida();
 }
 
+function abrirFormSellado(id){
+  const c = id ? cartas.get(id) : null;
+  const jk = c ? juegoDe(c) : ui.juego, j = JUEGOS[jk];
+  abrir(cabecera(c ? "Editar producto" : "Nueva caja o sobre de " + esc(j.nombre)) + `
+    <form id="f-sellado" data-id="${esc(id || "")}" data-juego="${jk}">
+      <div class="campo"><label for="s-producto">Qué es</label><select id="s-producto" name="producto">${opciones(PRODUCTOS, c?.producto || PRODUCTOS[0])}</select></div>
+      <div class="campo"><label for="s-nombre">Nombre</label><input id="s-nombre" name="nombre" required value="${esc(c?.nombre)}" placeholder="Ej: nombre de la expansión" ${c ? "" : "autofocus"}></div>
+      <div class="dos">
+        <div class="campo"><label for="s-set">Código de la expansión</label><input id="s-set" name="set" value="${esc(c?.set)}" placeholder="Ej: ROTA (opcional)" style="text-transform:uppercase"></div>
+        <div class="campo"><label for="s-idioma">Idioma</label><select id="s-idioma" name="idioma">${opciones(IDIOMAS, c?.idioma || "Inglés")}</select></div>
+      </div>
+      ${c ? "" : `<div class="dos">
+        <div class="campo"><label for="s-cant">Cuántas compraste</label><input id="s-cant" name="cant" type="number" inputmode="numeric" min="0" step="1" value="1"></div>
+        <div class="campo"><label for="s-costo">Pagaste c/u ($)</label><input id="s-costo" name="costo" inputmode="decimal" placeholder="0"></div>
+      </div>`}
+      <div class="campo"><label for="s-notas">Notas</label><input id="s-notas" name="notas" value="${esc(c?.notas)}" placeholder="Ej: a quién se la compraste, 24 sobres por caja"></div>
+      <p class="error" id="s-error" hidden></p>
+      <button class="btn pri" type="submit">${c ? "Guardar cambios" : "Guardar"}</button>
+      ${c ? `<button class="btn peligro" type="button" data-accion="borrarCarta" data-id="${esc(c.id)}">Borrar producto y sus movimientos</button>` : ""}
+    </form>`, {tipo: "form"});
+}
+
 /* ------------------------------------------------- buscador con autocompletado */
 let auto = null;        // {juego, sel, token, lista, item}
 let tAuto = null;
@@ -813,7 +848,7 @@ function abrirDetalle(id, refresco){
   const scroll = hoja.scrollTop;
   const html = cabecera(esc(c.nombre)) + `
     ${c.img ? `<img class="carta-img" src="${esc(c.img)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}
-    <p class="f-sub" style="margin:-6px 0 10px">${esc([c.set, c.rareza, c.idioma, c.estado].filter(Boolean).join(" · "))}${c.notas ? "<br>" + esc(c.notas) : ""}</p>
+    <p class="f-sub" style="margin:-6px 0 10px">${esc((esSellado(c) ? [c.producto, c.set, c.idioma] : [c.set, c.rareza, c.idioma, c.estado]).filter(Boolean).join(" · "))}${c.notas ? "<br>" + esc(c.notas) : ""}</p>
     <div class="fila-btns">
       <button class="btn venta" data-accion="mov" data-t="venta" data-id="${esc(c.id)}" ${i.stock > 0 ? "" : "disabled"}>Vender</button>
       <button class="btn" data-accion="mov" data-t="compra" data-id="${esc(c.id)}">Comprar más</button>
@@ -839,7 +874,7 @@ function abrirDetalle(id, refresco){
       </div>
       ${lista.length ? `<ul class="historial">${lista.slice().reverse().map(p => `<li><span>${fFecha(p.f)}</span><b class="num" style="margin-left:auto">${plata(p.v, p.m)}</b><button class="x" data-accion="borrarPrecio" data-id="${esc(c.id)}" data-f="${p.f}" data-m="${p.m}" aria-label="Borrar precio del ${fFecha(p.f)}">×</button></li>`).join("")}</ul>` : ""}
     </div>
-    <div class="fila-btns" style="margin-top:12px"><button class="btn" data-accion="editar" data-id="${esc(c.id)}">Editar carta</button></div>`;
+    <div class="fila-btns" style="margin-top:12px"><button class="btn" data-accion="editar" data-id="${esc(c.id)}">${esSellado(c) ? "Editar producto" : "Editar carta"}</button></div>`;
   if (refresco) { hoja.innerHTML = html; hoja.scrollTop = scroll; ui.modal = {tipo: "detalle", id}; }
   else abrir(html, {tipo: "detalle", id});
 }
@@ -1178,7 +1213,7 @@ async function elegirArchivo(file){
 }
 
 /* --- armar lo que se va a guardar --- */
-const claveCarta = c => [juegoDe(c), clave(c.nombre), String(c.set || "").toUpperCase(), c.rareza || "", c.idioma || "Inglés"].join("|");
+const claveCarta = c => [juegoDe(c), esSellado(c) ? "S" : "", clave(c.nombre), String(c.set || "").toUpperCase(), c.rareza || "", c.idioma || "Inglés"].join("|");
 function armarPlan(){
   const m = imp.mapa;
   const col = campo => m.indexOf(campo);
@@ -1404,7 +1439,7 @@ function limpiarCopia(d){
   const cs = new Map();
   for (const c of d.cartas) {
     if (!c || typeof c.id !== "string" || !c.id || !txt(c.nombre).trim()) continue;
-    cs.set(c.id, {id: c.id, juego: JUEGOS[c.juego] ? c.juego : "ygo", img: /^https:\/\//.test(txt(c.img)) ? c.img : "", nombre: c.nombre, set: txt(c.set), rareza: txt(c.rareza), idioma: txt(c.idioma) || "Inglés",
+    cs.set(c.id, {id: c.id, ...(c.clase === "sellado" ? {clase: "sellado", producto: txt(c.producto)} : {}), juego: JUEGOS[c.juego] ? c.juego : "ygo", img: /^https:\/\//.test(txt(c.img)) ? c.img : "", nombre: c.nombre, set: txt(c.set), rareza: txt(c.rareza), idioma: txt(c.idioma) || "Inglés",
       estado: txt(c.estado) || "Near Mint", notas: txt(c.notas), creada: esFecha(c.creada) ? c.creada : hoy(),
       precios: (Array.isArray(c.precios) ? c.precios : []).filter(p => p && esFecha(p.f) && num(p.v) && (p.m === "usd" || p.m === "ars")).map(p => ({f: p.f, v: p.v, m: p.m}))});
   }
@@ -1441,12 +1476,21 @@ function precioVenta(i){
 function textoCompartir(){
   const idx = indiceMovs();
   const base = comp.cuales === "vista" && hayFiltro() ? filtradas(idx) : cartasJuego().map(c => ({c, i: infoCarta(c, idx)}));
-  const filas = base.filter(x => x.i.stock > 0).sort((a, b) => a.c.nombre.localeCompare(b.c.nombre, "es"));
-  const lineas = filas.map(({c, i}) => {
+  const filas = base.filter(x => x.i.stock > 0).sort((a, b) => esSellado(a.c) - esSellado(b.c) || a.c.nombre.localeCompare(b.c.nombre, "es"));
+  const cajas = filas.filter(x => esSellado(x.c)), sueltas = filas.filter(x => !esSellado(x.c));
+  const linea = ({c, i}) => {
+    if (esSellado(c)) {
+      const ed = [c.producto, comp.conEd ? c.set : "", c.idioma && c.idioma !== "Inglés" ? c.idioma : ""].filter(Boolean).join(" · ");
+      const p = comp.moneda === "no" ? "" : (precioVenta(i) ? `*${precioVenta(i)}*` : "consultar");
+      return "• " + c.nombre + (ed ? ` (${ed})` : "") + (comp.conCant && i.stock > 1 ? ` x${i.stock}` : "") + (p ? " — " + p : "");
+    }
     const ed = comp.conEd ? [c.set, c.rareza, c.idioma && c.idioma !== "Inglés" ? c.idioma : "", c.estado && c.estado !== "Near Mint" ? c.estado : ""].filter(Boolean).join(" · ") : "";
     const p = comp.moneda === "no" ? "" : (precioVenta(i) ? `*${precioVenta(i)}*` : "consultar");
     return "• " + c.nombre + (ed ? ` (${ed})` : "") + (comp.conCant && i.stock > 1 ? ` x${i.stock}` : "") + (p ? " — " + p : "");
-  });
+  };
+  const lineas = cajas.length && sueltas.length
+    ? ["_Cartas_", ...sueltas.map(linea), "", "_Cajas y sobres cerrados_", ...cajas.map(linea)]
+    : filas.map(linea);
   const pie = comp.moneda === "no" ? "Consultá precios por privado." : "Precios por unidad. Consultas por privado.";
   return {n: filas.length, texto: `*${tituloComp()}*\n\n${lineas.join("\n")}\n\n${pie}`};
 }
@@ -1454,7 +1498,7 @@ function abrirCompartir(){
   const seg = (nombre, valor, ops) => `<div class="seg" role="radiogroup" style="grid-template-columns:repeat(${ops.length},1fr)">${ops.map(([v, t]) =>
     `<input type="radio" name="${nombre}" id="${nombre}-${v}" value="${v}" ${valor === v ? "checked" : ""}><label for="${nombre}-${v}">${t}</label>`).join("")}</div>`;
   abrir(cabecera("Lista para compartir") + `<form id="f-comp" class="compartir">
-    <p class="ayuda" style="margin-top:-6px">Arma la lista de tus cartas de ${esc(J().nombre)} con stock, lista para mandar por WhatsApp o pegar en grupos de Facebook.</p>
+    <p class="ayuda" style="margin-top:-6px">Arma la lista de tus cartas (y cajas cerradas) de ${esc(J().nombre)} con stock, lista para mandar por WhatsApp o pegar en grupos de Facebook.</p>
     ${hayFiltro() ? `<div class="campo"><label>Qué cartas</label>${seg("cuales", comp.cuales, [["todas", "Todas con stock"], ["vista", "Solo las filtradas"]])}</div>` : ""}
     <div class="campo"><label>Precio</label>${seg("moneda", comp.moneda, [["ars", "Pesos"], ["usd", "Dólares"], ["no", "Sin precio"]])}</div>
     <div class="dos">
@@ -1495,7 +1539,7 @@ document.addEventListener("click", async ev => {
   if (t.dataset.tab) { ui.tab = t.dataset.tab; window.scrollTo(0, 0); render(); return; }
   const a = t.dataset.accion, id = t.dataset.id;
   switch (a) {
-    case "nueva": abrirFormCarta(); break;
+    case "nueva": ui.clase === "sellado" ? abrirFormSellado() : abrirFormCarta(); break;
     case "juego": cambiarJuego(t.dataset.j); break;
     case "sugNombre": elegirNombre(+t.dataset.k); break;
     case "sugEd": if (auto && auto.item) elegirEdicion(auto.item.ediciones[+t.dataset.k]); break;
@@ -1510,7 +1554,7 @@ document.addEventListener("click", async ev => {
     case "importarYa": case "reintentarImport": t.disabled = true; await ejecutarImport(); break;
     case "cerrar": cerrar(); break;
     case "detalle": abrirDetalle(id); break;
-    case "editar": abrirFormCarta(id); break;
+    case "editar": esSellado(cartas.get(id)) ? abrirFormSellado(id) : abrirFormCarta(id); break;
     case "mov": abrirFormMov(id, t.dataset.t); break;
     case "precio": abrirFormPrecio(id); break;
     case "soloStock": ui.soloStock = !ui.soloStock; vistaStock(); break;
@@ -1525,7 +1569,7 @@ document.addEventListener("click", async ev => {
     }
     case "borrarCarta": {
       const c = cartas.get(id);
-      confirmar(`Se borra <strong>${esc(c.nombre)}</strong> con todas sus compras, ventas y precios. No se puede deshacer.`, "Borrar carta",
+      confirmar(`Se borra <strong>${esc(c.nombre)}</strong> con todas sus compras, ventas y precios. No se puede deshacer.`, esSellado(c) ? "Borrar producto" : "Borrar carta",
         async () => { await borrarCartaDB(id); toast("Carta borrada"); });
       break;
     }
@@ -1561,6 +1605,7 @@ document.addEventListener("change", ev => {
   if (t.id === "imp-archivo") { if (t.files && t.files[0]) elegirArchivo(t.files[0]); t.value = ""; return; }
   if (t.id === "copia-archivo") { if (t.files && t.files[0]) restaurarCopia(t.files[0]); t.value = ""; return; }
   if (t.form && t.form.id === "f-comp" && t.id !== "comp-texto") { leerComp(t.form); return; }
+  if (t.name === "clase" && !t.form) { ui.clase = t.value; ui.rareza = null; ui.q = ""; render(); return; }
   if (!imp || !imp.libro) return;
   if (t.id === "imp-hoja") { elegirHoja(t.value); pintarImport(); }
   else if (t.id === "imp-titulos") { imp.filaTitulo = t.checked ? imp.primeraFila : -1; imp.mapa = adivinarMapa(); pintarImport(); }
@@ -1590,6 +1635,33 @@ document.addEventListener("submit", async ev => {
   ev.preventDefault();
   const f = ev.target, d = Object.fromEntries(new FormData(f));
   const btn = f.querySelector('[type="submit"]');
+
+  if (f.id === "f-sellado") {
+    const nombre = d.nombre.trim();
+    if (!nombre) return mostrarError("#s-error", "Escribí el nombre.");
+    const existente = f.dataset.id ? cartas.get(f.dataset.id) : null;
+    const prod = {
+      ...(existente || {}),
+      id: existente ? existente.id : nuevoId(), clase: "sellado",
+      juego: existente ? juegoDe(existente) : (JUEGOS[f.dataset.juego] ? f.dataset.juego : ui.juego),
+      producto: d.producto, nombre, set: d.set.trim().toUpperCase(), rareza: "", idioma: d.idioma, estado: "Near Mint", notas: d.notas.trim(),
+      creada: existente?.creada || hoy(), precios: existente?.precios ? [...existente.precios] : []
+    };
+    let cant = 0, costo = 0;
+    if (!existente) {
+      cant = parseInt(d.cant || "0", 10);
+      costo = d.costo ? numero(d.costo) : 0;
+      if (!(cant >= 0)) return mostrarError("#s-error", "La cantidad tiene que ser 0 o más.");
+      if (isNaN(costo) || costo < 0) return mostrarError("#s-error", "El precio pagado no es un número válido.");
+    }
+    btn.disabled = true;
+    try {
+      await guardarCarta(prod);
+      if (cant > 0) await guardarMov({id: nuevoId(), cartaId: prod.id, tipo: "compra", cant, precio: costo, fecha: hoy(), nota: "Carga inicial", ts: Date.now()});
+    } catch (e) { btn.disabled = false; return; }
+    toast(existente ? "Cambios guardados" : `${nombre} guardado`);
+    if (existente) abrirDetalle(prod.id); else cerrar();
+  }
 
   if (f.id === "f-carta") {
     const nombre = d.nombre.trim();
