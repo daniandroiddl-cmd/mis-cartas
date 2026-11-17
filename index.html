@@ -244,6 +244,7 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:360px;z-index
     <div class="marca"><span class="logo" aria-hidden="true">◆</span><h1>Mis Cartas</h1></div>
     <div class="top-der">
       <div class="top-btns">
+        <button class="btn chico pri" data-accion="activar" id="btn-activar">Activar</button>
         <button class="btn chico" data-accion="copia" id="btn-copia">Copia</button>
         <button class="btn chico" data-accion="importar" id="btn-importar">Importar Excel</button>
       </div>
@@ -350,7 +351,7 @@ function errorGuardado(e){
 }
 /* Los datos viven en este dispositivo (localStorage). modoPrueba = guardado local. */
 const CLAVE = "mis-cartas-v1";
-const datosCopia = () => ({app: "mis-cartas", v: 1, fecha: hoy(), cartas: [...cartas.values()], movs});
+const datosCopia = () => ({app: "mis-cartas", v: 1, fecha: hoy(), ...(typeof licencia === "string" && licencia ? {licencia} : {}), cartas: [...cartas.values()], movs});
 function leerLocal(){
   const t = localStorage.getItem(CLAVE);
   const d = t ? JSON.parse(t) : {};
@@ -443,6 +444,7 @@ function render(){
   if (importando) return;
   document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-current", b.dataset.tab === ui.tab ? "page" : "false"));
   pintarJuegos();
+  pintarLicencia();
   $("#fab").textContent = ui.clase === "sellado" ? "+ Caja" : "+ Carta";
   if (!cargadoC || !cargadoM) { vista.innerHTML = `<div class="vacio"><b>Cargando tus cartas…</b>Un segundo.</div>`; return; }
   ({stock: vistaStock, movs: vistaMovs, precios: vistaPrecios, ganancias: vistaGanancias})[ui.tab]();
@@ -507,10 +509,11 @@ function pintarJuegos(){
   const n = {};
   for (const c of cartas.values()) { const j = juegoDe(c); n[j] = (n[j] || 0) + 1; }
   $("#juegos").innerHTML = Object.entries(JUEGOS).map(([k, j]) =>
-    `<button class="chip" data-accion="juego" data-j="${k}" aria-pressed="${ui.juego === k}">${esc(j.nombre)}${n[k] ? ` <small class="num">${n[k]}</small>` : ""}</button>`).join("");
+    `<button class="chip" data-accion="juego" data-j="${k}" aria-pressed="${ui.juego === k}">${juegoBloqueado(k) ? "🔒 " : ""}${esc(j.nombre)}${n[k] ? ` <small class="num">${n[k]}</small>` : ""}</button>`).join("");
 }
 function cambiarJuego(k){
   if (!JUEGOS[k] || k === ui.juego) return;
+  if (juegoBloqueado(k)) { abrirActivar("juego"); return; }
   ui.juego = k; ui.rareza = null; ui.q = "";
   try { localStorage.setItem(CLAVE_JUEGO, k); } catch (e) {}
   window.scrollTo(0, 0);
@@ -1405,7 +1408,8 @@ function pintarImport(){
       ${plan.filas.length > 6 ? `<p class="ayuda" style="margin-top:8px">…y ${plan.filas.length - 6} fila(s) más.</p>` : ""}`}
     <div class="importar-fin">
       ${yaImportado ? `<div class="aviso" style="margin:0">Ya importaste un archivo llamado “${esc(imp.nombre)}”. Si lo cargás de nuevo, el stock se suma otra vez.</div>` : ""}
-      <button class="btn pri" data-accion="importarYa" ${!plan.sinNombre && plan.filas.length ? "" : "disabled"}>${total ? `Cargar ${total} carta${total === 1 ? "" : "s"}` : "Cargar"}</button>
+      ${llegoAlLimite(plan.nuevas) ? `<div class="aviso" style="margin:0">Con esta planilla pasarías las ${LIMITE_GRATIS} cartas de la versión gratis (ahora tenés ${cartas.size}).</div>
+      <button class="btn pri" data-accion="activar" data-motivo="importar">Activar la versión completa</button>` : `<button class="btn pri" data-accion="importarYa" ${!plan.sinNombre && plan.filas.length ? "" : "disabled"}>${total ? `Cargar ${total} carta${total === 1 ? "" : "s"}` : "Cargar"}</button>`}
     </div>`;
   hoja.scrollTop = scroll;
   function col(c){ return imp.mapa.indexOf(c); }
@@ -1425,6 +1429,7 @@ function pintarProgreso(){
 async function ejecutarImport(){
   if (!imp || !imp.plan || importando) return;
   const plan = imp.plan;
+  if (!imp.tareas && llegoAlLimite(plan.nuevas)) { abrirActivar("importar"); return; }
   if (!imp.tareas) {
     imp.tareas = [...plan.cartas.map(o => ({col: "c", o})), ...plan.movs.map(o => ({col: "m", o}))];
     imp.listas = imp.tareas.map(() => false);
@@ -1510,14 +1515,14 @@ function limpiarCopia(d){
     if (!m || typeof m.id !== "string" || !cs.has(m.cartaId) || !(m.tipo === "compra" || m.tipo === "venta") || !num(m.cant) || !num(m.precio) || !esFecha(m.fecha)) continue;
     ms.push({id: m.id, cartaId: m.cartaId, tipo: m.tipo, cant: m.cant, precio: m.precio, fecha: m.fecha, nota: txt(m.nota), ts: typeof m.ts === "number" ? m.ts : 0});
   }
-  return {cartas: cs, movs: ms, fecha: esFecha(d.fecha) ? d.fecha : null};
+  return {cartas: cs, movs: ms, fecha: esFecha(d.fecha) ? d.fecha : null, lic: codigoValido(d.licencia) ? d.licencia : null};
 }
 async function restaurarCopia(file){
   let d = null;
   try { d = limpiarCopia(JSON.parse(await file.text())); } catch (e) {}
   if (!d) { const el = $("#copia-error"); if (el) { el.hidden = false; el.textContent = "Ese archivo no es una copia de Mis Cartas."; } return; }
   confirmar(`Se reemplaza todo lo que hay en este dispositivo (${cartas.size} carta(s)) por la copia${d.fecha ? " del " + fFecha(d.fecha) : ""}: <strong>${d.cartas.size} carta(s)</strong> y ${d.movs.length} movimiento(s).`, "Restaurar copia",
-    async () => { local(() => { cartas = d.cartas; movs = d.movs; }); toast("Copia restaurada"); });
+    async () => { if (d.lic && !esCompleta()) guardarLicencia(d.lic); local(() => { cartas = d.cartas; movs = d.movs; }); toast("Copia restaurada"); });
 }
 
 /* ------------------------------------------------ lista para compartir */
@@ -1595,6 +1600,78 @@ async function copiarTexto(texto){
   }
 }
 
+/* ------------------------------------------------------ versión completa */
+const LIMITE_GRATIS = 100;                 // cartas + cajas en la versión gratis
+const PRECIO_TXT = "$10.000";              // lo que se muestra al que quiere comprar
+const CONTACTO_WSP = "";                   // tu número para que te escriban (ej: "5491122334455"); vacío = no se muestra el botón
+const CLAVE_LIC = "mis-cartas-licencia";
+const ABC = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const SAL = ["QbUGmk", "gIiRh5", "ww-nMr", "ZXzjxS"].join("");
+function cyrb53(str, seed){
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0, ch; i < str.length; i++) { ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507); h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507); h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+}
+const limpiarCodigo = s => String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+function codigoValido(s){
+  const c = limpiarCodigo(s);
+  if (c.length !== 12 || [...c].some(ch => !ABC.includes(ch))) return false;
+  let h = cyrb53(SAL + c.slice(0, 8), 7), chk = "";
+  for (let k = 0; k < 4; k++) { chk += ABC[h % 32]; h = Math.floor(h / 32); }
+  return chk === c.slice(8);
+}
+const lindoCodigo = s => { const c = limpiarCodigo(s); return c.slice(0, 4) + "-" + c.slice(4, 8) + "-" + c.slice(8, 12); };
+let licencia = (() => { try { const v = localStorage.getItem(CLAVE_LIC); return codigoValido(v) ? lindoCodigo(v) : null; } catch (e) { return null; } })();
+const esCompleta = () => !!licencia;
+function guardarLicencia(cod){
+  licencia = lindoCodigo(cod);
+  try { localStorage.setItem(CLAVE_LIC, licencia); } catch (e) {}
+}
+/* el juego de la versión gratis: el que ya tiene cosas cargadas (null si todavía no cargó nada) */
+function juegoLibre(){
+  const n = {};
+  for (const c of cartas.values()) { const j = juegoDe(c); n[j] = (n[j] || 0) + 1; }
+  const orden = Object.entries(n).sort((a, b) => b[1] - a[1]);
+  return orden.length ? orden[0][0] : null;
+}
+const juegoBloqueado = k => !esCompleta() && juegoLibre() && k !== juegoLibre();
+const llegoAlLimite = (extra = 1) => !esCompleta() && cartas.size + extra > LIMITE_GRATIS;
+function pintarLicencia(){
+  const b = $("#btn-activar"); if (!b) return;
+  b.textContent = esCompleta() ? "Completa ✓" : "Activar";
+  b.classList.toggle("pri", !esCompleta());
+  if (cargadoC) estado(esCompleta() ? "Guardado en este dispositivo" : (cartas.size >= LIMITE_GRATIS ? "Versión gratis · llegaste al límite" : `Versión gratis · ${cartas.size} de ${LIMITE_GRATIS}`));
+}
+function abrirActivar(motivo){
+  if (esCompleta()) {
+    abrir(cabecera("Versión completa ✓") + `<p style="margin-top:0">Tenés la versión completa activada en este dispositivo: cartas sin límite, todos los juegos y la lista para compartir.</p>
+      <p class="ayuda">Tu código: <strong class="num">${esc(licencia)}</strong>. Guardalo: si cambiás de celular, con la <strong>Copia</strong> de seguridad o con este código la volvés a activar.</p>`, {tipo: "activar"});
+    return;
+  }
+  const porQue = {limite: `Llegaste a las ${LIMITE_GRATIS} cartas de la versión gratis.`, juego: "La versión gratis es para un solo juego.",
+    compartir: "La lista para compartir es de la versión completa.", importar: `Con esa planilla pasarías las ${LIMITE_GRATIS} cartas de la versión gratis.`}[motivo] || "";
+  const msj = encodeURIComponent("Hola! Quiero la versión completa de Mis Cartas");
+  abrir(cabecera("Versión completa") + `
+    ${porQue ? `<div class="aviso" style="margin-top:0">${esc(porQue)} Tus cartas no se pierden: las seguís viendo, vendiendo y comprando.</div>` : ""}
+    <div class="panel" style="margin-bottom:12px">
+      <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px">
+        <li><strong>Cartas y cajas sin límite</strong> (la gratis llega a ${LIMITE_GRATIS})</li>
+        <li><strong>Todos los juegos:</strong> ${Object.values(JUEGOS).map(j => esc(j.nombre)).join(", ")}</li>
+        <li><strong>Lista para compartir</strong> por WhatsApp y Facebook</li>
+      </ul>
+      <p style="margin:12px 0 0;font-size:18px"><strong>${esc(PRECIO_TXT)}</strong> <span class="ayuda">· pagás una sola vez</span></p>
+    </div>
+    ${CONTACTO_WSP ? `<a class="btn wsp" style="width:100%;margin-bottom:14px" href="https://wa.me/${esc(CONTACTO_WSP)}?text=${msj}" target="_blank" rel="noopener">Comprar por WhatsApp</a>` : `<p class="ayuda">Para comprarla, pedile el código a quien te pasó la app.</p>`}
+    <form id="f-activar">
+      <div class="campo"><label for="a-codigo">¿Ya tenés tu código?</label>
+        <input id="a-codigo" name="codigo" placeholder="XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" style="text-transform:uppercase;letter-spacing:1px" ${motivo ? "" : "autofocus"}></div>
+      <p class="error" id="a-error" hidden></p>
+      <button class="btn pri" type="submit">Activar</button>
+    </form>`, {tipo: "activar"});
+}
+
 /* ---------------------------------------------------------------- eventos */
 document.addEventListener("click", async ev => {
   const t = ev.target.closest("[data-accion], [data-tab]");
@@ -1602,12 +1679,13 @@ document.addEventListener("click", async ev => {
   if (t.dataset.tab) { ui.tab = t.dataset.tab; window.scrollTo(0, 0); render(); return; }
   const a = t.dataset.accion, id = t.dataset.id;
   switch (a) {
-    case "nueva": ui.clase === "sellado" ? abrirFormSellado() : abrirFormCarta(); break;
+    case "activar": abrirActivar(t.dataset.motivo); break;
+    case "nueva": if (llegoAlLimite()) { abrirActivar("limite"); break; } ui.clase === "sellado" ? abrirFormSellado() : abrirFormCarta(); break;
     case "juego": cambiarJuego(t.dataset.j); break;
     case "sugNombre": elegirNombre(+t.dataset.k); break;
     case "sugEd": if (auto && auto.item) elegirEdicion(auto.item.ediciones[+t.dataset.k]); break;
     case "sacarSel": { auto.sel = null; auto.item = null; $("#c-img").value = ""; pintarElegida(); const n = $("#c-nombre"); n.focus(); n.select(); programarBusqueda(n.value); break; }
-    case "compartir": abrirCompartir(); break;
+    case "compartir": if (!esCompleta()) { abrirActivar("compartir"); break; } abrirCompartir(); break;
     case "compWsp": { const tx = $("#comp-texto").value; window.open("https://wa.me/?text=" + encodeURIComponent(tx), "_blank", "noopener"); break; }
     case "compCopiar": toast(await copiarTexto($("#comp-texto").value) ? "Lista copiada" : "No se pudo copiar: seleccioná el texto a mano"); break;
     case "compShare": try { await navigator.share({text: $("#comp-texto").value}); } catch (e) {} break;
@@ -1775,6 +1853,15 @@ document.addEventListener("submit", async ev => {
     abrirDetalle(id);
   }
 
+  if (f.id === "f-activar") {
+    if (!codigoValido(d.codigo)) return mostrarError("#a-error", "Ese código no es válido. Revisá que esté bien escrito (son 12 letras y números).");
+    guardarLicencia(d.codigo);
+    try { persistir(); } catch (e) {}
+    cerrar(); render();
+    toast("¡Listo! Ya tenés la versión completa");
+    return;
+  }
+
   if (f.id === "f-venta") {
     const c = cartas.get(f.dataset.id); if (!c) return;
     const v = leerVenta(d.venta);
@@ -1809,6 +1896,7 @@ function iniciar(){
     aviso("Este navegador no deja guardar datos (¿está en modo incógnito?). Lo que cargues se pierde al cerrar.");
   }
   cargadoC = cargadoM = confirmado = true;
+  if (!esCompleta() && juegoLibre() && ui.juego !== juegoLibre()) ui.juego = juegoLibre();
   render();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
   if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
