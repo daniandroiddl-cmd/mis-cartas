@@ -1,7 +1,7 @@
 {
-  "name": "Mis Cartas Yu-Gi-Oh!",
+  "name": "Mis Cartas",
   "short_name": "Mis Cartas",
-  "description": "Stock, compras, ventas y precios de tus cartas de Yu-Gi-Oh!",
+  "description": "Stock, compras, ventas y precios de tus cartas: Yu-Gi-Oh!, Pokémon, Magic y One Piece",
   "lang": "es",
   "start_url": "./",
   "scope": "./",

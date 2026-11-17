@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Mis Cartas Yu-Gi-Oh!</title>
-<meta name="description" content="Stock, compras, ventas y precios de tus cartas de Yu-Gi-Oh!">
+<title>Mis Cartas</title>
+<meta name="description" content="Stock, compras, ventas y precios de tus cartas: Yu-Gi-Oh!, Pokémon, Magic y One Piece">
 <meta name="theme-color" content="#5733c2">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -173,6 +173,7 @@ form{display:flex;flex-direction:column;gap:12px}
 .col-imp.usada select{border-color:var(--accent);font-weight:600}
 @media (max-width:480px){.col-imp{grid-template-columns:1fr}}
 .check{display:flex;gap:10px;align-items:flex-start;font-size:15px;margin:10px 0 0;cursor:pointer}
+.check[hidden]{display:none}
 .check input{width:20px;height:20px;margin:1px 0 0;flex:none;accent-color:var(--accent)}
 .imp-cab{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:-4px 0 6px}
 .imp-cab .f-sub{margin:0}
@@ -184,6 +185,28 @@ form{display:flex;flex-direction:column;gap:12px}
 .progreso i{display:block;height:100%;background:var(--accent);transition:width .2s}
 .btn[disabled]{opacity:.5;cursor:default}
 .importar-fin{position:sticky;bottom:calc(-22px - env(safe-area-inset-bottom));background:var(--bg);padding:12px 0 6px;margin-top:12px;display:flex;flex-direction:column;gap:6px}
+/* selector de juego */
+.juegos{padding:0 0 8px}
+.juegos .chip{display:inline-flex;align-items:center;gap:6px;font-weight:600}
+.juegos .chip small{font-size:12px;opacity:.75;font-weight:500}
+/* autocompletado */
+.auto{position:relative}
+.sugs{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.sugs:empty{display:none}
+.sug{display:grid;grid-template-columns:44px 1fr;gap:10px;align-items:center;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:6px 10px}
+.sug:hover,.sug:focus-visible{border-color:var(--accent)}
+.sug img,.sug .sin-img{width:44px;height:62px;object-fit:cover;border-radius:4px;background:var(--line)}
+.sug b{display:block;font-size:15.5px;overflow-wrap:anywhere}
+.sug small{display:block;color:var(--muted);font-size:13px;overflow-wrap:anywhere}
+.sug-msg{color:var(--muted);font-size:14px;padding:4px 2px}
+.elegida{display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:8px 10px}
+.elegida img{width:64px;height:90px;object-fit:cover;border-radius:5px}
+.carta-img{display:block;width:120px;max-width:40%;border-radius:8px;box-shadow:var(--shadow);float:right;margin:0 0 10px 12px}
+/* compartir */
+.compartir textarea{width:100%;min-height:220px;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-size:15px;line-height:1.35;font-family:var(--body);resize:vertical}
+.btn.wsp{background:#1fa855;border-color:#1fa855;color:#fff}
+.acciones-stock{display:flex;gap:8px;margin:0 0 10px}
+.acciones-stock .btn{flex:1}
 @media (prefers-reduced-motion:no-preference){
   .hoja{animation:sube .18s ease-out}
   @keyframes sube{from{transform:translateY(24px);opacity:.6}to{transform:none;opacity:1}}
@@ -202,6 +225,7 @@ form{display:flex;flex-direction:column;gap:12px}
       <span id="estado" class="estado">Cargando…</span>
     </div>
   </header>
+  <div id="juegos" class="chips juegos" role="group" aria-label="Juego"></div>
   <div id="aviso"></div>
   <main id="vista"></main>
 </div>
@@ -244,15 +268,38 @@ const COLOR_RAREZA = {"Common":"#8a8fa3","Rare":"#7d8db8","Super Rare":"#3f86d6"
 const IDIOMAS = ["Inglés","Español","Portugués","Francés","Alemán","Italiano","Japonés","Otro"];
 const ESTADOS = ["Near Mint","Lightly Played","Moderately Played","Heavily Played","Damaged"];
 
-const linkTCG = c => "https://www.tcgplayer.com/search/yugioh/product?productLineName=yugioh&q=" + encodeURIComponent(c.nombre);
-const linkML = c => "https://listado.mercadolibre.com.ar/" + encodeURIComponent(norm("yugioh " + c.nombre + (c.set ? " " + c.set : "")).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""));
+/* ------------------------------------------------------------------ juegos */
+const JUEGOS = {
+  ygo:   {nombre: "Yu-Gi-Oh!", tcg: "yugioh", ml: "yugioh", rarezas: RAREZAS,
+          ejNombre: "Ej: Ash Blossom & Joyous Spring", ejSet: "Ej: MACR-EN036", ayudaSet: "El código está abajo a la derecha de la imagen de la carta."},
+  pkm:   {nombre: "Pokémon", tcg: "pokemon", ml: "pokemon tcg",
+          rarezas: ["Common","Uncommon","Rare","Rare Holo","Double Rare","Ultra Rare","Illustration Rare","Special Illustration Rare","Hyper Rare","ACE SPEC Rare","Shiny Rare","Promo"],
+          ejNombre: "Ej: Charizard ex", ejSet: "Ej: OBF 125", ayudaSet: "Sigla de la expansión y número (abajo a la izquierda de la carta)."},
+  mtg:   {nombre: "Magic", tcg: "magic", ml: "magic the gathering",
+          rarezas: ["Common","Uncommon","Rare","Mythic Rare","Special","Bonus"],
+          ejNombre: "Ej: Lightning Bolt", ejSet: "Ej: M11 149", ayudaSet: "Código del set y número de coleccionista (abajo a la izquierda)."},
+  op:    {nombre: "One Piece", tcg: "one-piece-card-game", ml: "one piece card game",
+          rarezas: ["Common","Uncommon","Rare","Super Rare","Secret Rare","Leader","Special","Treasure Rare","Promo"],
+          ejNombre: "Ej: Monkey.D.Luffy", ejSet: "Ej: OP01-024", ayudaSet: "El código está abajo a la derecha de la carta."}
+};
+Object.assign(COLOR_RAREZA, {"Uncommon":"#5aa06b","Rare Holo":"#3f86d6","Double Rare":"#d4a017","Illustration Rare":"#e85d9b","Special Illustration Rare":"#c25bd6",
+  "Hyper Rare":"#c99a1c","ACE SPEC Rare":"#e0453a","Shiny Rare":"#9fb6c6","Promo":"#4fb3a9","Mythic Rare":"#e0453a","Special":"#7a5cf0","Bonus":"#4fb3a9",
+  "Leader":"#e0453a","Treasure Rare":"#c99a1c"});
+const juegoDe = c => (c && JUEGOS[c.juego]) ? c.juego : "ygo";
+const J = () => JUEGOS[ui.juego];
+const cartasJuego = () => [...cartas.values()].filter(c => juegoDe(c) === ui.juego);
+
+const linkTCG = c => { const j = JUEGOS[juegoDe(c)]; return `https://www.tcgplayer.com/search/${j.tcg}/product?productLineName=${j.tcg}&q=` + encodeURIComponent(c.nombre); };
+const linkML = c => "https://listado.mercadolibre.com.ar/" + encodeURIComponent(norm(JUEGOS[juegoDe(c)].ml + " " + c.nombre + (c.set ? " " + c.set : "")).replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""));
 
 /* --------------------------------------------------------------------- estado */
 let cartas = new Map();   // id -> {id, nombre, set, rareza, idioma, estado, notas, creada, precios:[{f, v, m}]}
 let movs = [];            // {id, cartaId, tipo, cant, precio, fecha, nota, ts}
 let cargadoC = false, cargadoM = false, confirmado = false;
 let db = null, colCartas = null, colMovs = null, modoPrueba = false;
-const ui = {tab: "stock", q: "", rareza: null, soloStock: true, modal: null, tipoMov: "todos", monedaGraf: "usd"};
+const CLAVE_JUEGO = "mis-cartas-juego";
+const juegoGuardado = (() => { try { return localStorage.getItem(CLAVE_JUEGO); } catch (e) { return null; } })();
+const ui = {tab: "stock", q: "", rareza: null, soloStock: true, modal: null, tipoMov: "todos", monedaGraf: "usd", juego: JUEGOS[juegoGuardado] ? juegoGuardado : "ygo"};
 
 /* ---------------------------------------------------------------- guardado */
 let contadorLocal = 0;
@@ -357,6 +404,7 @@ function estado(t){ $("#estado").textContent = t; }
 function render(){
   if (importando) return;
   document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-current", b.dataset.tab === ui.tab ? "page" : "false"));
+  pintarJuegos();
   if (!cargadoC || !cargadoM) { vista.innerHTML = `<div class="vacio"><b>Cargando tus cartas…</b>Un segundo.</div>`; return; }
   ({stock: vistaStock, movs: vistaMovs, precios: vistaPrecios, ganancias: vistaGanancias})[ui.tab]();
   if (ui.modal && ui.modal.tipo === "detalle") abrirDetalle(ui.modal.id, true);
@@ -365,7 +413,8 @@ function render(){
 function vistaStock(){
   const idx = indiceMovs();
   let unidades = 0, distintas = 0, invertido = 0, valorUsd = 0, valorArs = 0;
-  for (const c of cartas.values()) {
+  const delJuego = cartasJuego();
+  for (const c of delJuego) {
     const i = infoCarta(c, idx);
     if (i.stock > 0) {
       distintas++; unidades += i.stock;
@@ -374,7 +423,9 @@ function vistaStock(){
       if (i.ars) valorArs += i.ars * i.stock;
     }
   }
-  const rarezas = [...new Set([...cartas.values()].map(c => c.rareza).filter(Boolean))].sort((a, b) => RAREZAS.indexOf(a) - RAREZAS.indexOf(b));
+  const ordenR = J().rarezas, posR = r => ordenR.includes(r) ? ordenR.indexOf(r) : 99;
+  const rarezas = [...new Set(delJuego.map(c => c.rareza).filter(Boolean))].sort((a, b) => posR(a) - posR(b));
+  if (ui.rareza && !rarezas.includes(ui.rareza)) ui.rareza = null;
   vista.innerHTML = `
     <section class="tiles" aria-label="Resumen">
       <div class="tile"><small>Cartas en stock</small><b>${distintas}</b></div>
@@ -382,6 +433,7 @@ function vistaStock(){
       <div class="tile"><small>Invertido en stock</small><b>${ars(invertido)}</b></div>
       <div class="tile gold"><small>Valor de lo que tiene precio anotado</small><b>${valorArs ? ars(valorArs) : valorUsd ? usd(valorUsd) : "—"}</b></div>
     </section>
+    <div class="acciones-stock"><button class="btn wsp" data-accion="compartir">Compartir lista por WhatsApp</button></div>
     <div class="buscador">
       <label for="q" class="lupa" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></label>
       <input id="q" type="search" placeholder="Buscar por nombre, set o nota" value="${esc(ui.q)}" autocomplete="off" aria-label="Buscar carta">
@@ -394,17 +446,37 @@ function vistaStock(){
   pintarLista();
 }
 
-function pintarLista(){
-  const lista = $("#lista"); if (!lista) return;
-  if (!cartas.size) {
-    lista.innerHTML = `<div class="vacio"><b>Todavía no cargaste cartas</b>Tocá <strong>+ Carta</strong> abajo a la derecha para cargar la primera, o traelas todas juntas desde una planilla.<div style="margin-top:14px"><button class="btn pri" data-accion="importar">Importar desde Excel</button></div></div>`;
-    return;
-  }
-  const idx = indiceMovs(), q = norm(ui.q).trim();
-  const filas = [...cartas.values()].map(c => ({c, i: infoCarta(c, idx)}))
+/* las cartas que se ven en Stock con el juego, la búsqueda y los filtros de ahora */
+function filtradas(idx){
+  const q = norm(ui.q).trim();
+  return cartasJuego().map(c => ({c, i: infoCarta(c, idx)}))
     .filter(({c, i}) => (!ui.soloStock || i.stock > 0) && (!ui.rareza || c.rareza === ui.rareza)
       && (!q || norm(c.nombre + " " + (c.set || "") + " " + (c.notas || "") + " " + (c.rareza || "")).includes(q)))
     .sort((a, b) => a.c.nombre.localeCompare(b.c.nombre, "es"));
+}
+const movsJuego = () => movs.filter(m => { const c = cartas.get(m.cartaId); return c && juegoDe(c) === ui.juego; });
+
+function pintarJuegos(){
+  const n = {};
+  for (const c of cartas.values()) { const j = juegoDe(c); n[j] = (n[j] || 0) + 1; }
+  $("#juegos").innerHTML = Object.entries(JUEGOS).map(([k, j]) =>
+    `<button class="chip" data-accion="juego" data-j="${k}" aria-pressed="${ui.juego === k}">${esc(j.nombre)}${n[k] ? ` <small class="num">${n[k]}</small>` : ""}</button>`).join("");
+}
+function cambiarJuego(k){
+  if (!JUEGOS[k] || k === ui.juego) return;
+  ui.juego = k; ui.rareza = null; ui.q = "";
+  try { localStorage.setItem(CLAVE_JUEGO, k); } catch (e) {}
+  window.scrollTo(0, 0);
+  render();
+}
+
+function pintarLista(){
+  const lista = $("#lista"); if (!lista) return;
+  if (!cartasJuego().length) {
+    lista.innerHTML = `<div class="vacio"><b>Todavía no cargaste cartas de ${esc(J().nombre)}</b>Tocá <strong>+ Carta</strong> abajo a la derecha para cargar la primera, o traelas todas juntas desde una planilla.<div style="margin-top:14px"><button class="btn pri" data-accion="importar">Importar desde Excel</button></div></div>`;
+    return;
+  }
+  const filas = filtradas(indiceMovs());
   if (!filas.length) {
     lista.innerHTML = `<div class="vacio"><b>No hay cartas con ese filtro</b>${ui.soloStock ? "Probá sacando “Solo con stock”." : "Probá con otra palabra."}</div>`;
     return;
@@ -421,7 +493,7 @@ function pintarLista(){
 }
 
 function vistaMovs(){
-  const lista = movs.slice().filter(m => ui.tipoMov === "todos" || m.tipo === ui.tipoMov)
+  const lista = movsJuego().filter(m => ui.tipoMov === "todos" || m.tipo === ui.tipoMov)
     .sort((a, b) => (b.fecha + (b.ts || 0)).localeCompare(a.fecha + (a.ts || 0)) || (b.ts || 0) - (a.ts || 0));
   let html = `<h2>Movimientos</h2>
     <div class="chips" role="group" aria-label="Tipo">
@@ -457,7 +529,7 @@ function fechaLarga(iso){
 
 function vistaPrecios(){
   const idx = indiceMovs();
-  const todas = [...cartas.values()].map(c => ({c, i: infoCarta(c, idx)}));
+  const todas = cartasJuego().map(c => ({c, i: infoCarta(c, idx)}));
   const conStock = todas.filter(x => x.i.stock > 0)
     .sort((a, b) => (a.i.ultPrecio || "0000").localeCompare(b.i.ultPrecio || "0000"));
   const cambios = todas.map(x => ({...x, v: x.i.arsVar ?? x.i.usdVar, mon: x.i.arsVar != null ? "ars" : "usd"})).filter(x => x.v != null && Math.abs(x.v) > 0.05);
@@ -500,7 +572,7 @@ function vistaGanancias(){
   const idx = indiceMovs();
   let vendido = 0, costoVendido = 0, sinCosto = 0;
   const porCarta = [];
-  for (const c of cartas.values()) {
+  for (const c of cartasJuego()) {
     const i = infoCarta(c, idx);
     if (!i.vendU) continue;
     const costo = (i.costo || 0) * i.vendU;
@@ -509,7 +581,7 @@ function vistaGanancias(){
     porCarta.push({c, i, ganancia: i.vend - costo});
   }
   const meses = new Map();
-  for (const m of movs) {
+  for (const m of movsJuego()) {
     const k = m.fecha.slice(0, 7);
     if (!meses.has(k)) meses.set(k, {venta: 0, compra: 0});
     meses.get(k)[m.tipo] += m.cant * m.precio;
@@ -549,20 +621,29 @@ function abrir(html, modal){
   const f = hoja.querySelector("[autofocus]") || hoja.querySelector(".cerrar");
   if (f && !modal.sinFoco) f.focus();
 }
-function cerrar(){ if (importando) return; ui.modal = null; capa.hidden = true; hoja.innerHTML = ""; document.body.style.overflow = ""; }
+function cerrar(){ if (importando) return; auto = null; clearTimeout(tAuto); ui.modal = null; capa.hidden = true; hoja.innerHTML = ""; document.body.style.overflow = ""; }
 const cabecera = t => `<div class="hoja-top"><h2>${t}</h2><button class="cerrar" data-accion="cerrar" aria-label="Cerrar">×</button></div>`;
-const opciones = (lista, sel) => lista.map(o => `<option${o === sel ? " selected" : ""}>${esc(o)}</option>`).join("");
+const opciones = (lista, sel) => (sel && !lista.includes(sel) ? [...lista, sel] : lista).map(o => `<option${o === sel ? " selected" : ""}>${esc(o)}</option>`).join("");
 
 function abrirFormCarta(id){
   const c = id ? cartas.get(id) : null;
-  abrir(cabecera(c ? "Editar carta" : "Nueva carta") + `
-    <form id="f-carta" data-id="${esc(id || "")}">
-      <div class="campo"><label for="c-nombre">Nombre de la carta</label><input id="c-nombre" name="nombre" required value="${esc(c?.nombre)}" placeholder="Ej: Ash Blossom & Joyous Spring" ${c ? "" : "autofocus"}></div>
-      <div class="dos">
-        <div class="campo"><label for="c-set">Código del set</label><input id="c-set" name="set" value="${esc(c?.set)}" placeholder="Ej: MACR-EN036" style="text-transform:uppercase"></div>
-        <div class="campo"><label for="c-rareza">Rareza</label><select id="c-rareza" name="rareza"><option value="">Sin especificar</option>${opciones(RAREZAS, c?.rareza)}</select></div>
+  const jk = c ? juegoDe(c) : ui.juego, j = JUEGOS[jk];
+  const conBuscador = !!BUSCADORES[jk];
+  auto = {juego: jk, sel: c && c.img ? {nombre: c.nombre, img: c.img, set: c.set, rareza: c.rareza} : null, token: 0, lista: [], item: null};
+  abrir(cabecera(c ? "Editar carta" : "Nueva carta de " + esc(j.nombre)) + `
+    <form id="f-carta" data-id="${esc(id || "")}" data-juego="${jk}">
+      <div class="campo auto"><label for="c-nombre">Nombre de la carta</label>
+        <input id="c-nombre" name="nombre" required value="${esc(c?.nombre)}" placeholder="${conBuscador ? "Escribí el nombre y elegila de la lista" : esc(j.ejNombre)}" autocomplete="off" ${c ? "" : "autofocus"}>
+        <ul id="sugs" class="sugs" aria-live="polite"></ul>
+        <div id="elegida"></div>
+        <input type="hidden" name="img" id="c-img" value="${esc(c?.img)}">
       </div>
-      <p class="ayuda" style="margin-top:-6px">El código está abajo a la derecha de la imagen de la carta.</p>
+      <p class="ayuda" style="margin-top:-6px">${conBuscador ? `Busca en la base de datos de ${esc(j.nombre)} (nombres en inglés). Si no aparece, escribila igual y completá lo demás a mano.` : `Para ${esc(j.nombre)} todavía no hay buscador automático: completala a mano.`}</p>
+      <div class="dos">
+        <div class="campo"><label for="c-set">Código del set</label><input id="c-set" name="set" value="${esc(c?.set)}" placeholder="${esc(j.ejSet)}" style="text-transform:uppercase"></div>
+        <div class="campo"><label for="c-rareza">Rareza</label><select id="c-rareza" name="rareza"><option value="">Sin especificar</option>${opciones(j.rarezas, c?.rareza)}</select></div>
+      </div>
+      <p class="ayuda" style="margin-top:-6px">${esc(j.ayudaSet)}</p>
       <div class="dos">
         <div class="campo"><label for="c-idioma">Idioma</label><select id="c-idioma" name="idioma">${opciones(IDIOMAS, c?.idioma || "Inglés")}</select></div>
         <div class="campo"><label for="c-estado">Estado</label><select id="c-estado" name="estado">${opciones(ESTADOS, c?.estado || "Near Mint")}</select></div>
@@ -571,11 +652,150 @@ function abrirFormCarta(id){
         <div class="campo"><label for="c-cant">Cuántas tenés</label><input id="c-cant" name="cant" type="number" inputmode="numeric" min="0" step="1" value="1"></div>
         <div class="campo"><label for="c-costo">Pagaste c/u ($)</label><input id="c-costo" name="costo" inputmode="decimal" placeholder="0"></div>
       </div>`}
+      <label class="check" id="c-precio-hoy" hidden style="margin:0"><input type="checkbox" name="precioHoy" disabled checked><span></span></label>
       <div class="campo"><label for="c-notas">Notas</label><input id="c-notas" name="notas" value="${esc(c?.notas)}" placeholder="Ej: carpeta 2, para cambio, firmada"></div>
       <p class="error" id="c-error" hidden></p>
       <button class="btn pri" type="submit">${c ? "Guardar cambios" : "Guardar carta"}</button>
       ${c ? `<button class="btn peligro" type="button" data-accion="borrarCarta" data-id="${esc(c.id)}">Borrar carta y sus movimientos</button>` : ""}
     </form>`, {tipo: "form"});
+  pintarElegida();
+}
+
+/* ------------------------------------------------- buscador con autocompletado */
+let auto = null;        // {juego, sel, token, lista, item}
+let tAuto = null;
+const cacheAuto = new Map();
+const usdTxt = v => "US$ " + Number(v).toLocaleString("es-AR", {minimumFractionDigits: 2, maximumFractionDigits: 2});
+const precioOk = v => { const n = parseFloat(v); return isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null; };
+
+async function pedirJSON(url){
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 9000);
+  try {
+    const r = await fetch(url, {signal: ctl.signal, headers: {Accept: "application/json"}});
+    if (r.status === 400 || r.status === 404) return null;     // "no encontré nada"
+    if (!r.ok) throw new Error("red");
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+/* cada buscador devuelve [{nombre, img, info, ediciones:[{set, setNombre, rareza, img, usd}] | null}] */
+async function buscarYGO(q){
+  const d = await pedirJSON("https://db.ygoprodeck.com/api/v7/cardinfo.php?num=8&offset=0&fname=" + encodeURIComponent(q));
+  return ((d && d.data) || []).map(c => {
+    const img = c.card_images && c.card_images[0] ? c.card_images[0].image_url_small : "";
+    const eds = (c.card_sets || []).map(s => ({set: String(s.set_code || "").toUpperCase(), setNombre: s.set_name || "", rareza: s.set_rarity || "", img, usd: precioOk(s.set_price)}));
+    return {nombre: c.name, img, info: [c.type, eds.length ? eds.length + " edición(es)" : ""].filter(Boolean).join(" · "), ediciones: eds};
+  });
+}
+async function buscarPKM(q){
+  const limpio = q.replace(/["*:]/g, " ").trim();
+  let lista = [];
+  try {
+    const d = await pedirJSON("https://api.pokemontcg.io/v2/cards?pageSize=60&orderBy=-set.releaseDate&select=id,name,number,rarity,set,images,tcgplayer&q="
+      + encodeURIComponent(`name:"${limpio}*"`));
+    lista = ((d && d.data) || []).map(c => {
+      const ps = c.tcgplayer && c.tcgplayer.prices ? Object.values(c.tcgplayer.prices) : [];
+      const usd = ps.map(p => precioOk(p.market) || precioOk(p.mid)).find(Boolean) || null;
+      return {nombre: c.name, img: c.images ? c.images.small : "",
+        ed: {set: ((c.set && (c.set.ptcgoCode || c.set.id)) || "").toUpperCase() + " " + c.number, setNombre: c.set ? c.set.name : "", rareza: c.rarity || "", img: c.images ? c.images.small : "", usd}};
+    });
+  } catch (e) {
+    // plan B: TCGdex (sin rareza ni precio)
+    const d = await pedirJSON("https://api.tcgdex.net/v2/en/cards?name=" + encodeURIComponent(limpio));
+    lista = (Array.isArray(d) ? d : []).slice(0, 60).map(c => {
+      const img = c.image ? c.image + "/low.webp" : "";
+      return {nombre: c.name, img, ed: {set: String(c.id || "").toUpperCase(), setNombre: "", rareza: "", img, usd: null}};
+    });
+  }
+  const grupos = new Map();
+  for (const x of lista) {
+    if (!grupos.has(x.nombre)) grupos.set(x.nombre, {nombre: x.nombre, img: x.img, ediciones: []});
+    grupos.get(x.nombre).ediciones.push(x.ed);
+  }
+  return [...grupos.values()].slice(0, 8).map(g => ({...g, info: g.ediciones.length + " edición(es)"}));
+}
+const RAREZA_MTG = {common: "Common", uncommon: "Uncommon", rare: "Rare", mythic: "Mythic Rare", special: "Special", bonus: "Bonus"};
+async function buscarMTG(q){
+  const d = await pedirJSON("https://api.scryfall.com/cards/autocomplete?q=" + encodeURIComponent(q));
+  return ((d && d.data) || []).slice(0, 8).map(n => ({nombre: n, img: "", info: "Tocá para ver las ediciones", ediciones: null}));
+}
+async function edicionesMTG(nombre){
+  const d = await pedirJSON("https://api.scryfall.com/cards/search?unique=prints&order=released&q=" + encodeURIComponent(`!"${nombre}"`));
+  return ((d && d.data) || []).slice(0, 40).map(c => {
+    const iu = c.image_uris || (c.card_faces && c.card_faces[0] && c.card_faces[0].image_uris) || {};
+    return {set: String(c.set || "").toUpperCase() + " " + c.collector_number, setNombre: c.set_name || "", rareza: RAREZA_MTG[c.rarity] || c.rarity || "",
+      img: iu.small || "", usd: precioOk(c.prices && (c.prices.usd || c.prices.usd_foil))};
+  });
+}
+const BUSCADORES = {ygo: buscarYGO, pkm: buscarPKM, mtg: buscarMTG};
+
+function sugsHTML(html){ const el = $("#sugs"); if (el) el.innerHTML = html; }
+const imgSug = src => src ? `<img src="${esc(src)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<span class="sin-img"></span>`;
+
+function programarBusqueda(texto){
+  clearTimeout(tAuto);
+  if (!auto || !BUSCADORES[auto.juego]) return;
+  const q = texto.trim();
+  if (q.length < 3) { auto.token++; sugsHTML(""); return; }
+  tAuto = setTimeout(() => buscarAhora(q), 350);
+}
+async function buscarAhora(q){
+  const tok = ++auto.token, k = auto.juego + "|" + norm(q);
+  sugsHTML(`<li class="sug-msg">Buscando…</li>`);
+  let res;
+  try {
+    if (!cacheAuto.has(k)) cacheAuto.set(k, await BUSCADORES[auto.juego](q));
+    res = cacheAuto.get(k);
+  } catch (e) {
+    if (auto && tok === auto.token) sugsHTML(`<li class="sug-msg">No pude buscar (¿hay internet?). Podés cargarla a mano igual.</li>`);
+    return;
+  }
+  if (!auto || tok !== auto.token) return;       // ya escribió otra cosa
+  auto.lista = res;
+  if (!res.length) { sugsHTML(`<li class="sug-msg">No encontré cartas con “${esc(q)}”. Probá con el nombre en inglés.</li>`); return; }
+  sugsHTML(res.map((r, k) => `<li><button type="button" class="sug" data-accion="sugNombre" data-k="${k}">${imgSug(r.img)}
+    <span><b>${esc(r.nombre)}</b><small>${esc(r.info || "")}</small></span></button></li>`).join(""));
+}
+async function elegirNombre(k){
+  const item = auto && auto.lista[k]; if (!item) return;
+  auto.item = item;
+  const input = $("#c-nombre"); if (input) input.value = item.nombre;
+  auto.token++;
+  if (!item.ediciones) {
+    sugsHTML(`<li class="sug-msg">Buscando ediciones…</li>`);
+    const tok = auto.token;
+    try { item.ediciones = await edicionesMTG(item.nombre); }
+    catch (e) { if (tok === auto.token) sugsHTML(`<li class="sug-msg">No pude traer las ediciones. Completá el set a mano.</li>`); return; }
+    if (!auto || tok !== auto.token) return;
+  }
+  const eds = item.ediciones;
+  if (eds.length <= 1) { elegirEdicion(eds[0] || {set: "", setNombre: "", rareza: "", img: item.img, usd: null}); return; }
+  sugsHTML(`<li class="sug-msg"><strong style="color:var(--ink)">¿Qué edición es?</strong> ${eds.length} ediciones</li>` +
+    eds.map((e, k) => `<li><button type="button" class="sug" data-accion="sugEd" data-k="${k}">${imgSug(e.img || item.img)}
+      <span><b>${esc(e.set || "Sin código")}${e.rareza ? " · " + esc(e.rareza) : ""}</b><small>${esc(e.setNombre)}${e.usd ? " · " + usdTxt(e.usd) : ""}</small></span></button></li>`).join(""));
+}
+function elegirEdicion(e){
+  if (!auto || !auto.item) return;
+  auto.sel = {nombre: auto.item.nombre, img: e.img || auto.item.img || "", set: e.set, setNombre: e.setNombre, rareza: e.rareza, usd: e.usd};
+  const f = $("#f-carta"); if (!f) return;
+  f.querySelector("#c-nombre").value = auto.sel.nombre;
+  f.querySelector("#c-set").value = auto.sel.set || "";
+  const selR = f.querySelector("#c-rareza");
+  if (auto.sel.rareza && ![...selR.options].some(o => o.value === auto.sel.rareza)) selR.add(new Option(auto.sel.rareza, auto.sel.rareza));
+  selR.value = auto.sel.rareza || "";
+  if (auto.juego === "ygo") { const idi = idiomaDeSet(auto.sel.set); if (idi) f.querySelector("#c-idioma").value = idi; }
+  f.querySelector("#c-img").value = auto.sel.img;
+  sugsHTML("");
+  pintarElegida();
+}
+function pintarElegida(){
+  const el = $("#elegida"), chk = $("#c-precio-hoy"); if (!el || !auto) return;
+  const s = auto.sel;
+  el.innerHTML = s && s.img ? `<div class="elegida">${imgSug(s.img)}<div><b>${esc(s.nombre)}</b>
+    <div class="f-sub">${esc([s.set, s.rareza].filter(Boolean).join(" · "))}${s.setNombre ? "<br>" + esc(s.setNombre) : ""}</div></div>
+    <button type="button" class="btn chico" data-accion="sacarSel">Cambiar</button></div>` : "";
+  const hay = !!(s && s.usd);
+  chk.hidden = !hay; chk.querySelector("input").disabled = !hay;
+  if (hay) chk.querySelector("span").innerHTML = `Anotar el precio de TCGplayer de hoy: <strong>${usdTxt(s.usd)}</strong>`;
 }
 
 function abrirDetalle(id, refresco){
@@ -588,6 +808,7 @@ function abrirDetalle(id, refresco){
   const lista = preciosDe(c, ui.monedaGraf);
   const scroll = hoja.scrollTop;
   const html = cabecera(esc(c.nombre)) + `
+    ${c.img ? `<img class="carta-img" src="${esc(c.img)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : ""}
     <p class="f-sub" style="margin:-6px 0 10px">${esc([c.set, c.rareza, c.idioma, c.estado].filter(Boolean).join(" · "))}${c.notas ? "<br>" + esc(c.notas) : ""}</p>
     <div class="fila-btns">
       <button class="btn venta" data-accion="mov" data-t="venta" data-id="${esc(c.id)}" ${i.stock > 0 ? "" : "disabled"}>Vender</button>
@@ -953,7 +1174,7 @@ async function elegirArchivo(file){
 }
 
 /* --- armar lo que se va a guardar --- */
-const claveCarta = c => [clave(c.nombre), String(c.set || "").toUpperCase(), c.rareza || "", c.idioma || "Inglés"].join("|");
+const claveCarta = c => [juegoDe(c), clave(c.nombre), String(c.set || "").toUpperCase(), c.rareza || "", c.idioma || "Inglés"].join("|");
 function armarPlan(){
   const m = imp.mapa;
   const col = campo => m.indexOf(campo);
@@ -976,9 +1197,12 @@ function armarPlan(){
     const notas = colsNotas.map(i => String(f.txt[i] ?? "").trim()).filter(Boolean);
     const set = txt("set").toUpperCase().replace(/\s+/g, "");
     let rareza = "", idioma = "", estado = "Near Mint";
-    if (txt("rareza")) { rareza = rarezaDe(txt("rareza")); if (!rareza) notas.push("Rareza: " + txt("rareza")); }
+    if (txt("rareza")) {
+      rareza = rarezaDe(txt("rareza"));
+      if (!rareza) { const propia = J().rarezas.find(r => clave(r) === clave(txt("rareza"))); if (propia || ui.juego !== "ygo") rareza = propia || txt("rareza"); else notas.push("Rareza: " + txt("rareza")); }
+    }
     if (txt("idioma")) { idioma = idiomaDe(txt("idioma")); if (!idioma) { idioma = "Otro"; notas.push("Idioma: " + txt("idioma")); } }
-    else idioma = idiomaDeSet(set) || "Inglés";
+    else idioma = (ui.juego === "ygo" && idiomaDeSet(set)) || "Inglés";
     if (txt("estado")) { const e = estadoDe(txt("estado")); if (e) estado = e; else notas.push("Estado: " + txt("estado")); }
     const cant = col("cant") >= 0 ? cantDe(raw("cant")) : 1;
     let costo = 0;
@@ -990,12 +1214,12 @@ function armarPlan(){
     if (col("ars") >= 0) { const n = aNumero(raw("ars"), false); if (n > 0) precios.push({f: fechaHoy, v: n, m: "ars"}); }
     if (col("usd") >= 0) { const n = aNumero(raw("usd"), true); if (n > 0) precios.push({f: fechaHoy, v: Math.round(n * 100) / 100, m: "usd"}); }
 
-    const k = claveCarta({nombre, set, rareza, idioma});
+    const k = claveCarta({juego: ui.juego, nombre, set, rareza, idioma});
     let carta = nuevas.get(k), ya = false;
     if (!carta) {
       const ex = existentes.get(k);
       if (ex) { ya = true; carta = tocadas.get(ex.id); if (!carta) { carta = {...ex, precios: [...(ex.precios || [])], _cambio: false}; tocadas.set(ex.id, carta); } }
-      else { carta = {id: nuevoId(), nombre, set, rareza, idioma, estado, notas: "", creada: fechaHoy, precios: []}; nuevas.set(k, carta); }
+      else { carta = {id: nuevoId(), juego: ui.juego, nombre, set, rareza, idioma, estado, notas: "", creada: fechaHoy, precios: []}; nuevas.set(k, carta); }
     }
     for (const n of notas) if (agregarNota(carta, n) && ya) carta._cambio = true;
     for (const p of precios) {
@@ -1022,7 +1246,7 @@ function abrirImportar(){
   if (!cargadoC || !cargadoM) { toast("Esperá un segundo, todavía están cargando tus cartas"); return; }
   imp = null;
   abrir(cabecera("Importar desde Excel") + `
-    <p style="margin-top:0">Elegí tu planilla (Excel, .ods o .csv). Cada fila tiene que ser una carta. Antes de cargar nada te muestro qué entendí de cada columna, así lo revisás.</p>
+    <p style="margin-top:0">Las cartas se cargan en <strong>${esc(J().nombre)}</strong> (si son de otro juego, cambialo arriba antes de importar). Elegí tu planilla (Excel, .ods o .csv). Cada fila tiene que ser una carta. Antes de cargar nada te muestro qué entendí de cada columna, así lo revisás.</p>
     ${inputArchivo("Elegir archivo")}
     <p class="error" id="imp-error" hidden></p>
     <p class="ayuda">Sirve aunque las columnas tengan otros nombres o estén en otro orden: después elegís qué es cada una.</p>`, {tipo: "importar"});
@@ -1176,7 +1400,7 @@ function limpiarCopia(d){
   const cs = new Map();
   for (const c of d.cartas) {
     if (!c || typeof c.id !== "string" || !c.id || !txt(c.nombre).trim()) continue;
-    cs.set(c.id, {id: c.id, nombre: c.nombre, set: txt(c.set), rareza: txt(c.rareza), idioma: txt(c.idioma) || "Inglés",
+    cs.set(c.id, {id: c.id, juego: JUEGOS[c.juego] ? c.juego : "ygo", img: /^https:\/\//.test(txt(c.img)) ? c.img : "", nombre: c.nombre, set: txt(c.set), rareza: txt(c.rareza), idioma: txt(c.idioma) || "Inglés",
       estado: txt(c.estado) || "Near Mint", notas: txt(c.notas), creada: esFecha(c.creada) ? c.creada : hoy(),
       precios: (Array.isArray(c.precios) ? c.precios : []).filter(p => p && esFecha(p.f) && num(p.v) && (p.m === "usd" || p.m === "ars")).map(p => ({f: p.f, v: p.v, m: p.m}))});
   }
@@ -1195,6 +1419,71 @@ async function restaurarCopia(file){
     async () => { local(() => { cartas = d.cartas; movs = d.movs; }); toast("Copia restaurada"); });
 }
 
+/* ------------------------------------------------ lista para compartir */
+const CLAVE_COMP = "mis-cartas-compartir";
+const comp = Object.assign({moneda: "ars", ajuste: 0, cuales: "todas", conEd: true, conCant: true, titulos: {}},
+  (() => { try { return JSON.parse(localStorage.getItem(CLAVE_COMP) || "{}"); } catch (e) { return {}; } })());
+function guardarComp(){ try { localStorage.setItem(CLAVE_COMP, JSON.stringify(comp)); } catch (e) {} }
+const tituloComp = () => comp.titulos[ui.juego] || `Vendo cartas de ${J().nombre}`;
+const hayFiltro = () => !!(norm(ui.q).trim() || ui.rareza);
+
+function precioVenta(i){
+  const base = comp.moneda === "usd" ? i.usd : comp.moneda === "ars" ? i.ars : null;
+  if (base == null) return null;
+  const v = base * (1 + (comp.ajuste || 0) / 100);
+  if (comp.moneda === "usd") return usd(Math.round(v * 100) / 100);
+  return ars(v >= 2000 ? Math.round(v / 100) * 100 : Math.round(v));
+}
+function textoCompartir(){
+  const idx = indiceMovs();
+  const base = comp.cuales === "vista" && hayFiltro() ? filtradas(idx) : cartasJuego().map(c => ({c, i: infoCarta(c, idx)}));
+  const filas = base.filter(x => x.i.stock > 0).sort((a, b) => a.c.nombre.localeCompare(b.c.nombre, "es"));
+  const lineas = filas.map(({c, i}) => {
+    const ed = comp.conEd ? [c.set, c.rareza, c.idioma && c.idioma !== "Inglés" ? c.idioma : "", c.estado && c.estado !== "Near Mint" ? c.estado : ""].filter(Boolean).join(" · ") : "";
+    const p = comp.moneda === "no" ? "" : (precioVenta(i) ? `*${precioVenta(i)}*` : "consultar");
+    return "• " + c.nombre + (ed ? ` (${ed})` : "") + (comp.conCant && i.stock > 1 ? ` x${i.stock}` : "") + (p ? " — " + p : "");
+  });
+  const pie = comp.moneda === "no" ? "Consultá precios por privado." : "Precios por unidad. Consultas por privado.";
+  return {n: filas.length, texto: `*${tituloComp()}*\n\n${lineas.join("\n")}\n\n${pie}`};
+}
+function abrirCompartir(){
+  const seg = (nombre, valor, ops) => `<div class="seg" role="radiogroup" style="grid-template-columns:repeat(${ops.length},1fr)">${ops.map(([v, t]) =>
+    `<input type="radio" name="${nombre}" id="${nombre}-${v}" value="${v}" ${valor === v ? "checked" : ""}><label for="${nombre}-${v}">${t}</label>`).join("")}</div>`;
+  abrir(cabecera("Lista para compartir") + `<form id="f-comp" class="compartir">
+    <p class="ayuda" style="margin-top:-6px">Arma la lista de tus cartas de ${esc(J().nombre)} con stock, lista para mandar por WhatsApp o pegar en grupos de Facebook.</p>
+    ${hayFiltro() ? `<div class="campo"><label>Qué cartas</label>${seg("cuales", comp.cuales, [["todas", "Todas con stock"], ["vista", "Solo las filtradas"]])}</div>` : ""}
+    <div class="campo"><label>Precio</label>${seg("moneda", comp.moneda, [["ars", "Pesos"], ["usd", "Dólares"], ["no", "Sin precio"]])}</div>
+    <div class="dos">
+      <div class="campo"><label for="comp-ajuste">Ajuste de precio (%)</label><input id="comp-ajuste" name="ajuste" type="number" inputmode="numeric" step="1" value="${comp.ajuste || 0}"></div>
+      <div class="campo"><label for="comp-titulo">Título</label><input id="comp-titulo" name="titulo" value="${esc(tituloComp())}"></div>
+    </div>
+    <p class="ayuda" style="margin-top:-6px">Usa el último precio que anotaste de cada carta. Con el ajuste lo subís o bajás (ej: -10 = 10% menos).</p>
+    <label class="check" style="margin:0"><input type="checkbox" name="conEd" ${comp.conEd ? "checked" : ""}><span>Mostrar edición y rareza</span></label>
+    <label class="check" style="margin:0"><input type="checkbox" name="conCant" ${comp.conCant ? "checked" : ""}><span>Mostrar cuántas tengo</span></label>
+    <div class="campo"><label for="comp-texto">Así queda (lo podés editar antes de mandarlo)</label><textarea id="comp-texto"></textarea></div>
+    <p class="ayuda" id="comp-info"></p>
+    <div class="fila-btns">
+      <button type="button" class="btn wsp" data-accion="compWsp">Enviar por WhatsApp</button>
+      <button type="button" class="btn" data-accion="compCopiar">Copiar</button>
+      ${navigator.share ? `<button type="button" class="btn" data-accion="compShare">Compartir…</button>` : ""}
+    </div></form>`, {tipo: "compartir"});
+  rehacerCompartir();
+}
+function rehacerCompartir(){
+  const t = textoCompartir(), area = $("#comp-texto"), info = $("#comp-info");
+  if (!area) return;
+  area.value = t.texto;
+  info.textContent = !t.n ? "No hay cartas con stock para poner en la lista." :
+    `${t.n} carta${t.n === 1 ? "" : "s"} en la lista.` + (t.texto.length > 3500 ? " Es larga: si WhatsApp no la abre entera, usá Copiar y pegala." : "");
+}
+async function copiarTexto(texto){
+  try { await navigator.clipboard.writeText(texto); return true; }
+  catch (e) {
+    const a = $("#comp-texto"); if (!a) return false;
+    a.select(); try { return document.execCommand("copy"); } catch (_) { return false; }
+  }
+}
+
 /* ---------------------------------------------------------------- eventos */
 document.addEventListener("click", async ev => {
   const t = ev.target.closest("[data-accion], [data-tab]");
@@ -1203,6 +1492,14 @@ document.addEventListener("click", async ev => {
   const a = t.dataset.accion, id = t.dataset.id;
   switch (a) {
     case "nueva": abrirFormCarta(); break;
+    case "juego": cambiarJuego(t.dataset.j); break;
+    case "sugNombre": elegirNombre(+t.dataset.k); break;
+    case "sugEd": if (auto && auto.item) elegirEdicion(auto.item.ediciones[+t.dataset.k]); break;
+    case "sacarSel": { auto.sel = null; auto.item = null; $("#c-img").value = ""; pintarElegida(); const n = $("#c-nombre"); n.focus(); n.select(); programarBusqueda(n.value); break; }
+    case "compartir": abrirCompartir(); break;
+    case "compWsp": { const tx = $("#comp-texto").value; window.open("https://wa.me/?text=" + encodeURIComponent(tx), "_blank", "noopener"); break; }
+    case "compCopiar": toast(await copiarTexto($("#comp-texto").value) ? "Lista copiada" : "No se pudo copiar: seleccioná el texto a mano"); break;
+    case "compShare": try { await navigator.share({text: $("#comp-texto").value}); } catch (e) {} break;
     case "importar": abrirImportar(); break;
     case "copia": abrirCopia(); break;
     case "exportarCopia": exportarCopia(); break;
@@ -1248,12 +1545,18 @@ document.addEventListener("click", async ev => {
 
 document.addEventListener("input", ev => {
   if (ev.target.id === "q") { ui.q = ev.target.value; pintarLista(); }
+  if (ev.target.id === "c-nombre" && auto) {
+    if (auto.sel && ev.target.value !== auto.sel.nombre) { auto.sel = null; auto.item = null; $("#c-img").value = ""; pintarElegida(); }
+    programarBusqueda(ev.target.value);
+  }
+  if (ev.target.form && ev.target.form.id === "f-comp" && ev.target.id !== "comp-texto") leerComp(ev.target.form);
 });
 document.addEventListener("keydown", ev => { if (ev.key === "Escape" && !capa.hidden) cerrar(); });
 document.addEventListener("change", ev => {
   const t = ev.target;
   if (t.id === "imp-archivo") { if (t.files && t.files[0]) elegirArchivo(t.files[0]); t.value = ""; return; }
   if (t.id === "copia-archivo") { if (t.files && t.files[0]) restaurarCopia(t.files[0]); t.value = ""; return; }
+  if (t.form && t.form.id === "f-comp" && t.id !== "comp-texto") { leerComp(t.form); return; }
   if (!imp || !imp.libro) return;
   if (t.id === "imp-hoja") { elegirHoja(t.value); pintarImport(); }
   else if (t.id === "imp-titulos") { imp.filaTitulo = t.checked ? imp.primeraFila : -1; imp.mapa = adivinarMapa(); pintarImport(); }
@@ -1266,6 +1569,17 @@ document.addEventListener("change", ev => {
   }
 });
 
+function leerComp(f){
+  const d = Object.fromEntries(new FormData(f));
+  if (d.cuales) comp.cuales = d.cuales;
+  comp.moneda = d.moneda || "ars";
+  const aj = parseFloat(d.ajuste); comp.ajuste = isFinite(aj) ? Math.max(-90, Math.min(500, aj)) : 0;
+  comp.conEd = !!d.conEd; comp.conCant = !!d.conCant;
+  const tit = (d.titulo || "").trim();
+  if (tit && tit !== `Vendo cartas de ${J().nombre}`) comp.titulos[ui.juego] = tit; else delete comp.titulos[ui.juego];
+  guardarComp();
+  rehacerCompartir();
+}
 function mostrarError(idEl, texto){ const el = $(idEl); el.textContent = texto; el.hidden = !texto; }
 
 document.addEventListener("submit", async ev => {
@@ -1280,9 +1594,15 @@ document.addEventListener("submit", async ev => {
     const carta = {
       ...(existente || {}),
       id: existente ? existente.id : nuevoId(),
+      juego: existente ? juegoDe(existente) : (JUEGOS[f.dataset.juego] ? f.dataset.juego : ui.juego),
       nombre, set: d.set.trim().toUpperCase(), rareza: d.rareza, idioma: d.idioma, estado: d.estado, notas: d.notas.trim(),
+      img: /^https:\/\//.test(d.img || "") ? d.img : "",
       creada: existente?.creada || hoy(), precios: existente?.precios ? [...existente.precios] : []
     };
+    if (d.precioHoy && auto && auto.sel && auto.sel.usd) {
+      carta.precios = carta.precios.filter(p => !(p.f === hoy() && p.m === "usd"));
+      carta.precios.push({f: hoy(), v: auto.sel.usd, m: "usd"});
+    }
     let cant = 0, costo = 0;
     if (!existente) {
       cant = parseInt(d.cant || "0", 10);

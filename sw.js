@@ -1,5 +1,7 @@
 // Mis Cartas: funciona sin conexión. Cambiá VERSION cuando subas una versión nueva de la app.
-const VERSION = "mis-cartas-1";
+const VERSION = "mis-cartas-2";
+// buscadores de cartas: siempre por internet, no se guardan
+const SIN_GUARDAR = ["db.ygoprodeck.com", "api.pokemontcg.io", "api.tcgdex.net", "api.scryfall.com"];
 const BASE = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-maskable-512.png"];
 
 self.addEventListener("install", e => {
@@ -13,6 +15,7 @@ self.addEventListener("activate", e => {
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET" || !req.url.startsWith("http")) return;
+  if (SIN_GUARDAR.includes(new URL(req.url).hostname)) return;
   const guardar = res => {
     if (res && (res.ok || res.type === "opaque")) { const copia = res.clone(); caches.open(VERSION).then(c => c.put(req, copia)); }
     return res;
