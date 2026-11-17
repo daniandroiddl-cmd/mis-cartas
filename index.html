@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mis Cartas</title>
-<meta name="description" content="Stock, compras, ventas y precios de tus cartas: Yu-Gi-Oh!, Pokémon, Magic y One Piece">
+<meta name="description" content="Stock, compras, ventas y precios de tus cartas: Yu-Gi-Oh!, Pokémon, Magic, One Piece y Dragon Ball">
 <meta name="theme-color" content="#5733c2">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -280,11 +280,14 @@ const JUEGOS = {
           ejNombre: "Ej: Lightning Bolt", ejSet: "Ej: M11 149", ayudaSet: "Código del set y número de coleccionista (abajo a la izquierda)."},
   op:    {nombre: "One Piece", tcg: "one-piece-card-game", ml: "one piece card game",
           rarezas: ["Common","Uncommon","Rare","Super Rare","Secret Rare","Leader","Special","Treasure Rare","Promo"],
-          ejNombre: "Ej: Monkey.D.Luffy", ejSet: "Ej: OP01-024", ayudaSet: "El código está abajo a la derecha de la carta."}
+          ejNombre: "Ej: Monkey.D.Luffy", ejSet: "Ej: OP01-024", ayudaSet: "El código está abajo a la derecha de la carta."},
+  dbs:   {nombre: "Dragon Ball", tcg: "dragon-ball-super-fusion-world", ml: "dragon ball super card game",
+          rarezas: ["Common","Uncommon","Rare","Super Rare","Secret Rare","Special Rare","Leader","Promo","Alternate Art"],
+          ejNombre: "Ej: Son Goku", ejSet: "Ej: FB01-001", ayudaSet: "El código está abajo a la izquierda de la carta."}
 };
 Object.assign(COLOR_RAREZA, {"Uncommon":"#5aa06b","Rare Holo":"#3f86d6","Double Rare":"#d4a017","Illustration Rare":"#e85d9b","Special Illustration Rare":"#c25bd6",
   "Hyper Rare":"#c99a1c","ACE SPEC Rare":"#e0453a","Shiny Rare":"#9fb6c6","Promo":"#4fb3a9","Mythic Rare":"#e0453a","Special":"#7a5cf0","Bonus":"#4fb3a9",
-  "Leader":"#e0453a","Treasure Rare":"#c99a1c"});
+  "Leader":"#e0453a","Treasure Rare":"#c99a1c","Special Rare":"#e85d9b","Alternate Art":"#7a5cf0"});
 const juegoDe = c => (c && JUEGOS[c.juego]) ? c.juego : "ygo";
 const J = () => JUEGOS[ui.juego];
 const cartasJuego = () => [...cartas.values()].filter(c => juegoDe(c) === ui.juego);
